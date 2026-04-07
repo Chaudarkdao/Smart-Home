@@ -1,0 +1,39 @@
+# Đang ở D:/HK252/DADN/Smart-Home/
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Backend
+Backend/face_database.pkl
+Backend/app/services/face_database.pkl
+Backend/uploads/
+Backend/.env
+
+# Frontend
+Frontend/node_modules/
+Frontend/.env
+Frontend/build/
+Frontend/.vscode/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
