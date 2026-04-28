@@ -93,7 +93,11 @@ class FaceRecognitionService:
         faces2 = self.app.get(image2)
         
         if len(faces1) == 0 or len(faces2) == 0:
-            return {'verified': False, 'error': 'Không tìm thấy khuôn mặt'}
+            return {
+                'verified': False,
+                'similarity': 0.0,
+                'error': 'Không tìm thấy khuôn mặt'
+            }
         
         emb1 = faces1[0].embedding
         emb2 = faces2[0].embedding
@@ -101,10 +105,13 @@ class FaceRecognitionService:
         # Cosine similarity
         similarity = np.dot(emb1, emb2) / (np.linalg.norm(emb1) * np.linalg.norm(emb2))
         
+        similarity = float(similarity)
+        verified = bool(similarity > float(Config.REC_THRESHOLD))
+        
         return {
-            'verified': similarity > Config.REC_THRESHOLD,
-            'similarity': float(similarity),
-            'threshold': Config.REC_THRESHOLD
+            'verified': verified,
+            'similarity': similarity,
+            'threshold': float(Config.REC_THRESHOLD)
         }
     
     def _save_database(self):

@@ -1,12 +1,8 @@
-import axios from 'axios';
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+import axios from "axios";
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'multipart/form-data',
-  },
+  baseURL: "http://localhost:8000",
+  timeout: 10000,
 });
 
 export default api;

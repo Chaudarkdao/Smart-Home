@@ -48,3 +48,10 @@ def init_mqtt():
 def publish(device, val):
     topic = f"{USER}/feeds/{GROUP_NAME}.{device}"
     mqtt.publish(topic, val)
+
+    # cập nhật trạng thái local ngay để frontend thấy thay đổi
+    if device in stats:
+        try:
+            stats[device] = float(val)
+        except:
+            stats[device] = val
