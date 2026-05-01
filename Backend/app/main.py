@@ -34,7 +34,8 @@ async def root():
         "message": "Face & Voice Control API",
         "endpoints": {
             "face": "/api/face/detect, /api/face/compare, /api/face/register/{name}",
-            "voice": "/api/voice/recognize, /api/voice/commands"
+            "voice": "/api/voice/recognize, /api/voice/commands",
+            "iot": "/api/iot/data, /api/iot/history, /api/iot/control/{device}/{val}, /api/iot/ai_trigger_auth/{auth_val}"
         }
     }
 

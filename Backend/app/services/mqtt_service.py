@@ -1,28 +1,44 @@
-# app/services/mqtt_service.py
-
 from paho.mqtt import client as mqtt_client
 from app.services.stats_service import stats
 from app.services.db_service import insert_history
-import os
+
 USER = os.getenv("AIO_USERNAME")
 KEY = os.getenv("AIO_KEY")
-GROUP_NAME = "yolohome"
+GROUP_NAME = "yolohome" 
 
 mqtt = None
 
 def on_message(client, userdata, msg):
     try:
-        topic_tail = msg.topic.split('/')[-1]
-        topic = topic_tail.split('.')[-1]
-        payload = msg.payload.decode()
+        if not msg.topic.startswith(f"{USER}/feeds/{GROUP_NAME}."):
+            return
 
-        print(f"[MQTT] {topic} -> {payload}")
+        if msg.topic.endswith("/json"):
+            return
 
-        if topic in stats:
-            stats[topic] = float(payload)
+        topic = msg.topic.split('.')[-1]
+        payload = msg.payload.decode().strip()
 
-            if topic in ["temp", "humi"]:
-                insert_history(stats["temp"], stats["humi"])
+        payload = payload.replace(",", "")
+
+        val = float(payload)
+
+        key = "pir" if topic == "dist" else topic
+
+        if key in stats:
+            stats[key] = val
+
+            if key in ["temp", "humi"]:
+                conn = sqlite3.connect('database.db')
+                c = conn.cursor()
+                c.execute(
+                    "INSERT INTO history (temp, humi) VALUES (?, ?)",
+                    (stats["temp"], stats["humi"])
+                )
+                conn.commit()
+                conn.close()
+
+        print(f"[MQTT] {key} -> {val}")
 
     except Exception as e:
         print("MQTT error:", e)
@@ -42,9 +58,9 @@ def init_mqtt():
     mqtt.loop_start()
 
     print("MQTT connected")
-    return mqtt
 
 
 def publish(device, val):
     topic = f"{USER}/feeds/{GROUP_NAME}.{device}"
     mqtt.publish(topic, val)
+    print(f"[PUBLISH] {val} -> {topic}")
