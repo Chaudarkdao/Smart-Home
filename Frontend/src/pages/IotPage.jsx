@@ -9,7 +9,12 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { controlDevice, getIotData, getIotHistory } from "../services/iotApi";
+import {
+  controlDevice,
+  getIotData,
+  getIotHistory,
+  triggerAiAuth,
+} from "../services/iotApi";
 
 export default function IotPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -18,7 +23,7 @@ export default function IotPage() {
     temp: 0,
     humi: 0,
     light: 0,
-    dist: 0,
+    pir: 0,
     led: 0,
     fan: 0,
     servo: 0,
@@ -29,7 +34,6 @@ export default function IotPage() {
     humi: [],
   });
 
-  // ================= FETCH =================
   const fetchAll = async () => {
     try {
       const [dataRes, historyRes] = await Promise.all([
@@ -37,7 +41,12 @@ export default function IotPage() {
         getIotHistory(),
       ]);
 
-      setIotData(dataRes);
+      setIotData((prev) => ({
+        ...prev,
+        ...dataRes,
+        pir: dataRes.pir ?? dataRes.dist ?? 0,
+      }));
+
       setHistory(historyRes);
     } catch (error) {
       console.error("IoT error:", error);
@@ -50,7 +59,6 @@ export default function IotPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // ================= CONTROL =================
   const handleControl = async (device, value) => {
     try {
       setIsLoading(true);
@@ -64,10 +72,21 @@ export default function IotPage() {
     }
   };
 
-  // ================= WARNING =================
+  const handleAiAuth = async (authVal) => {
+    try {
+      setIsLoading(true);
+      await triggerAiAuth(authVal);
+      await fetchAll();
+    } catch (err) {
+      console.error(err);
+      alert("Trigger AI Auth thất bại");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const tempWarning = Number(iotData.temp) > 40;
 
-  // ================= CHART =================
   const tempChartData = useMemo(() => {
     return (history.temp || []).map((v, i) => ({
       name: `${i + 1}`,
@@ -88,12 +107,9 @@ export default function IotPage() {
     day: "numeric",
   });
 
-  // ================= UI =================
   return (
     <div className="iot-dashboard-page">
       <div className="iot-dashboard-shell">
-
-        {/* HEADER */}
         <header className="iot-dashboard-header">
           <div>
             <p className="iot-dashboard-mini">SMART HOME</p>
@@ -107,7 +123,6 @@ export default function IotPage() {
           </div>
         </header>
 
-        {/* WARNING */}
         {tempWarning && (
           <div className="iot-alert danger">
             ⚠️ Nhiệt độ quá cao ({iotData.temp}°C)
@@ -118,11 +133,7 @@ export default function IotPage() {
         <h2 className="iot-welcome-heading">Welcome to your home</h2>
 
         <div className="iot-main-layout">
-
-          {/* LEFT */}
           <div className="iot-left-column">
-
-            {/* CHART */}
             <div className="iot-chart-grid">
               <div className="iot-chart-card">
                 <p className="iot-card-label">TEMPERATURE LOG</p>
@@ -153,48 +164,41 @@ export default function IotPage() {
               </div>
             </div>
 
-            {/* DEVICES */}
             <div className="iot-device-grid">
-
-              {/* LED */}
               <div className="iot-device-card">
                 <h3>💡 Lamp</h3>
                 <button
+                  disabled={isLoading}
                   className={`iot-toggle ${iotData.led ? "active" : ""}`}
-                  onClick={() =>
-                    handleControl("led", iotData.led ? 0 : 1)
-                  }
+                  onClick={() => handleControl("led", iotData.led ? 0 : 1)}
                 />
               </div>
 
-              {/* FAN */}
               <div className="iot-device-card">
                 <h3>🌀 Fan</h3>
                 <button
+                  disabled={isLoading}
                   className={`iot-toggle ${iotData.fan ? "active" : ""}`}
-                  onClick={() =>
-                    handleControl("fan", iotData.fan ? 0 : 1)
-                  }
+                  onClick={() => handleControl("fan", iotData.fan ? 0 : 1)}
                 />
               </div>
 
-              {/* SERVO */}
               <div className="iot-device-card">
                 <h3>🔐 Door</h3>
                 <button
-                  className={`iot-toggle ${iotData.servo > 45 ? "active" : ""}`}
+                  disabled={isLoading}
+                  className={`iot-toggle ${Number(iotData.servo) > 45 ? "active" : ""}`}
                   onClick={() =>
-                    handleControl("servo", iotData.servo > 45 ? 0 : 90)
+                    handleControl("servo", Number(iotData.servo) > 45 ? 0 : 90)
                   }
                 />
               </div>
-
             </div>
+
+            
           </div>
 
-          {/* RIGHT */}
           <div className="iot-right-column">
-
             <div className="iot-weather-card">
               <div className="iot-weather-icon">🌤️</div>
               <p>{todayText}</p>
@@ -207,20 +211,22 @@ export default function IotPage() {
                 <p>Temp</p>
                 <h3>{iotData.temp}°C</h3>
               </div>
+
               <div className="iot-quick-card">
                 <p>Humi</p>
                 <h3>{iotData.humi}%</h3>
               </div>
+
               <div className="iot-quick-card">
                 <p>Light</p>
                 <h3>{iotData.light}</h3>
               </div>
+
               <div className="iot-quick-card">
-                <p>Dist</p>
-                <h3>{iotData.dist} cm</h3>
+                <p>PIR</p>
+                <h3>{Number(iotData.pir) ? "Có chuyển động" : "Không có"}</h3>
               </div>
             </div>
-
           </div>
         </div>
       </div>

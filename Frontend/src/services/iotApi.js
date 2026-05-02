@@ -1,16 +1,32 @@
 import api from "./api";
 
+const request = async (url, options = {}) => {
+  const res = await fetch(url, options);
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Request failed");
+  }
+
+  return res.json();
+};
+
 export const getIotData = async () => {
-  const res = await api.get("/api/iot/data");
-  return res.data;
+  return request(`${API_URL}/api/iot/data`);
 };
 
 export const getIotHistory = async () => {
-  const res = await api.get("/api/iot/history");
-  return res.data;
+  return request(`${API_URL}/api/iot/history`);
 };
 
 export const controlDevice = async (device, val) => {
-  const res = await api.post(`/api/iot/control/${device}/${val}`);
-  return res.data;
+  return request(`${API_URL}/api/iot/control/${device}/${val}`, {
+    method: "POST",
+  });
+};
+
+export const triggerAiAuth = async (authVal) => {
+  return request(`${API_URL}/api/iot/ai_trigger_auth/${authVal}`, {
+    method: "POST",
+  });
 };

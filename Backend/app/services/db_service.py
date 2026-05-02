@@ -1,33 +1,33 @@
 import sqlite3
 
-DB_NAME = "database.db"
+DB = "database.db"
 
 def init_db():
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute('''
+    conn = sqlite3.connect(DB)
+    c = conn.cursor()
+    c.execute("""
         CREATE TABLE IF NOT EXISTS history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             temp REAL,
             humi REAL,
             time DATETIME DEFAULT CURRENT_TIMESTAMP
         )
-    ''')
+    """)
     conn.commit()
     conn.close()
 
 def insert_history(temp, humi):
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB)
     c = conn.cursor()
     c.execute("INSERT INTO history (temp, humi) VALUES (?, ?)", (temp, humi))
     conn.commit()
     conn.close()
 
 def get_history():
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute("SELECT temp, humi FROM history ORDER BY id DESC LIMIT 10")
-    data = cursor.fetchall()
+    conn = sqlite3.connect(DB)
+    c = conn.cursor()
+    c.execute("SELECT temp, humi FROM history ORDER BY id DESC LIMIT 10")
+    data = c.fetchall()
     conn.close()
 
     return {
