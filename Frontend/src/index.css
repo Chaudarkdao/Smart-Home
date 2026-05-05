@@ -44,3 +44,7 @@ input {
     box-shadow: 0 30px 90px rgba(99, 102, 241, 0.16);
   }
 }
+@keyframes scan {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(1000%); }
+}
