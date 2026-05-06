@@ -1,6 +1,4 @@
 # backend/app/services/face_service.py
-import insightface
-import cv2
 import numpy as np
 from typing import List, Dict
 from app.config import Config
@@ -8,26 +6,25 @@ import os
 
 class FaceRecognitionService:
     def __init__(self):
+        self.app = None
+        self.available = False
+        self.known_faces = {}
         try:
-            # Kiểm tra model đã download chưa
-            model_path = os.path.expanduser("~/.insightface/models/buffalo_l")
-            
             # Khởi tạo FaceAnalysis (cách đúng của InsightFace)
             from insightface.app import FaceAnalysis
             self.app = FaceAnalysis(name='buffalo_l', root='~/.insightface')
             self.app.prepare(ctx_id=-1)  # -1 cho CPU, 0 cho GPU
-            
-            print("✅ InsightFace model loaded successfully")
-            
-            # Lưu trữ danh sách khuôn mặt đã biết
-            self.known_faces = {}
+            self.available = True
+            print("InsightFace model loaded successfully")
             self._load_database()
         except Exception as e:
-            print(f"❌ Error loading InsightFace: {e}")
-            raise
+            print(f"[WARN] InsightFace unavailable, fallback mode active: {e}")
     
     async def detect_faces(self, image: np.ndarray) -> List[Dict]:
         """Phát hiện tất cả khuôn mặt trong ảnh"""
+        if not self.available or self.app is None:
+            return []
+
         # Sử dụng FaceAnalysis thay vì detector riêng
         faces = self.app.get(image)
         
@@ -74,6 +71,9 @@ class FaceRecognitionService:
     
     async def register_face(self, name: str, image: np.ndarray) -> bool:
         """Đăng ký khuôn mặt mới"""
+        if not self.available or self.app is None:
+            return False
+
         faces = self.app.get(image)
         if len(faces) == 0:
             return False
@@ -89,6 +89,13 @@ class FaceRecognitionService:
     
     async def compare_faces(self, image1: np.ndarray, image2: np.ndarray) -> Dict:
         """So sánh 2 ảnh"""
+        if not self.available or self.app is None:
+            return {
+                'verified': False,
+                'similarity': 0.0,
+                'error': 'InsightFace is not available in current environment'
+            }
+
         faces1 = self.app.get(image1)
         faces2 = self.app.get(image2)
         

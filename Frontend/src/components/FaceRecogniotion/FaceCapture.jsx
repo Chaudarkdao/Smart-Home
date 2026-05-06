@@ -117,19 +117,24 @@ const FaceCapture = ({ isDarkMode = true }) => {
           {/* Floating Result (Kết quả nổi) */}
           {detectedFaces.length > 0 && (
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20">
-              {detectedFaces.map((face, idx) => (
+              {detectedFaces.map((face, idx) => {
+                const name = (face?.recognized_name || '').trim();
+                const isUnknown = name.length === 0 || name.toLowerCase() === 'unknown';
+                const confidence = Number(face?.confidence || 0);
+                return (
                 <div key={idx} className="flex items-center gap-3 rounded-full bg-slate-900/80 px-5 py-2 backdrop-blur-md border border-white/10 shadow-xl">
                   <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></div>
                   <div>
                     <p className="text-sm font-semibold text-white">
-                      {face.recognized_name !== 'Unknown' ? face.recognized_name : 'Người lạ'}
+                      {!isUnknown ? name : 'Người lạ'}
                     </p>
                     <p className="text-xs text-emerald-300">
-                      Độ tin cậy: {(face.confidence * 100).toFixed(1)}%
+                      Độ tin cậy: {(confidence * 100).toFixed(1)}%
                     </p>
                   </div>
                 </div>
-              ))}
+              );
+            })}
             </div>
           )}
         </div>
