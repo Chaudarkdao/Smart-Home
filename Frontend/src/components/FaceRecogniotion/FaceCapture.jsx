@@ -110,7 +110,7 @@ const FaceCapture = ({ isDarkMode = true }) => {
               </div>
               
               {/* Thanh quét dọc (Scan line) */}
-              <div className="absolute top-0 w-full h-[2px] bg-emerald-400 shadow-[0_0_10px_#34d399] animate-[scan_2s_ease-in-out_infinite]"></div>
+              <div className="absolute left-0 top-0 w-full h-[2px] bg-emerald-400 shadow-[0_0_10px_#34d399] animate-[scan_2.8s_ease-in-out_infinite]"></div>
             </div>
           )}
 

@@ -45,6 +45,7 @@ input {
   }
 }
 @keyframes scan {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(1000%); }
+  0% { top: 0; }
+  50% { top: calc(100% - 2px); }
+  100% { top: 0; }
 }
