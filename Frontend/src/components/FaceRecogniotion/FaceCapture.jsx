@@ -36,7 +36,7 @@ const FaceCapture = ({ isDarkMode = true }) => {
           }
         }
       } catch (err) {
-        console.error('Lỗi nhận diện:', err);
+        console.error('Lỗi nhận diện:', err); 
       } finally {
         isProcessingRef.current = false;
       }
