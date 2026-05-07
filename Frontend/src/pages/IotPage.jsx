@@ -13,7 +13,6 @@ import {
   controlDevice,
   getIotData,
   getIotHistory,
-  triggerAiAuth,
 } from "../services/iotApi";
 
 export default function IotPage() {
@@ -25,8 +24,8 @@ export default function IotPage() {
     light: 0,
     pir: 0,
     led: 0,
-    fan: 0,
-    servo: 0,
+    fan: 4,
+    servo: 8,
   });
 
   const [history, setHistory] = useState({
@@ -63,23 +62,16 @@ export default function IotPage() {
     try {
       setIsLoading(true);
       await controlDevice(device, value);
+
+      setIotData((prev) => ({
+        ...prev,
+        [device]: value,
+      }));
+
       await fetchAll();
     } catch (err) {
       console.error(err);
       alert("Điều khiển thất bại");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleAiAuth = async (authVal) => {
-    try {
-      setIsLoading(true);
-      await triggerAiAuth(authVal);
-      await fetchAll();
-    } catch (err) {
-      console.error(err);
-      alert("Trigger AI Auth thất bại");
     } finally {
       setIsLoading(false);
     }
@@ -106,6 +98,21 @@ export default function IotPage() {
     month: "short",
     day: "numeric",
   });
+
+  const ledModes = [
+    { label: "Off", value: 0, icon: "⚫" },
+    { label: "White", value: 1, icon: "⚪" },
+    { label: "Green", value: 2, icon: "🟢" },
+    { label: "Red", value: 3, icon: "🔴" },
+  ];
+
+  const fanLevel = Math.max(0, Number(iotData.fan) - 4);
+
+  const handleFanSlider = async (e) => {
+    const level = Number(e.target.value); // 0, 1, 2, 3
+    const apiValue = level + 4; // 4, 5, 6, 7
+    await handleControl("fan", apiValue);
+  };
 
   return (
     <div className="iot-dashboard-page">
@@ -167,35 +174,83 @@ export default function IotPage() {
             <div className="iot-device-grid">
               <div className="iot-device-card">
                 <h3>💡 Lamp</h3>
-                <button
-                  disabled={isLoading}
-                  className={`iot-toggle ${iotData.led ? "active" : ""}`}
-                  onClick={() => handleControl("led", iotData.led ? 0 : 1)}
-                />
+                <p className="iot-device-subtitle">
+                  Current mode: {iotData.led}
+                </p>
+
+                <div className="iot-led-grid">
+                  {ledModes.map((mode) => (
+                    <button
+                      key={mode.value}
+                      disabled={isLoading}
+                      className={`iot-led-btn ${
+                        Number(iotData.led) === mode.value ? "active" : ""
+                      }`}
+                      onClick={() => handleControl("led", mode.value)}
+                    >
+                      <span>{mode.icon}</span>
+                      <small>{mode.label}</small>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="iot-device-card">
                 <h3>🌀 Fan</h3>
-                <button
-                  disabled={isLoading}
-                  className={`iot-toggle ${iotData.fan ? "active" : ""}`}
-                  onClick={() => handleControl("fan", iotData.fan ? 0 : 1)}
-                />
+                <p className="iot-device-subtitle">
+                  Speed level: {fanLevel}
+                </p>
+
+                <div className="iot-slider-box">
+                  <input
+                    type="range"
+                    min="0"
+                    max="3"
+                    step="1"
+                    value={fanLevel}
+                    disabled={isLoading}
+                    onChange={handleFanSlider}
+                    className="iot-fan-slider"
+                  />
+
+                  <div className="iot-slider-labels">
+                    <span>Off</span>
+                    <span>1</span>
+                    <span>2</span>
+                    <span>3</span>
+                  </div>
+                </div>
               </div>
 
               <div className="iot-device-card">
                 <h3>🔐 Door</h3>
-                <button
-                  disabled={isLoading}
-                  className={`iot-toggle ${Number(iotData.servo) > 45 ? "active" : ""}`}
-                  onClick={() =>
-                    handleControl("servo", Number(iotData.servo) > 45 ? 0 : 90)
-                  }
-                />
+                <p className="iot-device-subtitle">
+                  Status: {Number(iotData.servo) === 9 ? "Unlocked" : "Locked"}
+                </p>
+
+                <div className="iot-door-actions">
+                  <button
+                    disabled={isLoading}
+                    className={`iot-door-btn ${
+                      Number(iotData.servo) === 8 ? "active" : ""
+                    }`}
+                    onClick={() => handleControl("servo", 8)}
+                  >
+                    🔒 Lock
+                  </button>
+
+                  <button
+                    disabled={isLoading}
+                    className={`iot-door-btn ${
+                      Number(iotData.servo) === 9 ? "active" : ""
+                    }`}
+                    onClick={() => handleControl("servo", 9)}
+                  >
+                    🔓 Unlock
+                  </button>
+                </div>
               </div>
             </div>
-
-            
           </div>
 
           <div className="iot-right-column">
@@ -225,6 +280,21 @@ export default function IotPage() {
               <div className="iot-quick-card">
                 <p>PIR</p>
                 <h3>{Number(iotData.pir) ? "Có chuyển động" : "Không có"}</h3>
+              </div>
+
+              <div className="iot-quick-card">
+                <p>LED</p>
+                <h3>Mode {iotData.led}</h3>
+              </div>
+
+              <div className="iot-quick-card">
+                <p>Fan</p>
+                <h3>Speed {fanLevel}</h3>
+              </div>
+
+              <div className="iot-quick-card">
+                <p>Door</p>
+                <h3>{Number(iotData.servo) === 9 ? "Unlocked" : "Locked"}</h3>
               </div>
             </div>
           </div>
