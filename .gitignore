@@ -17,6 +17,7 @@ Backend/face_database.pkl
 Backend/app/services/face_database.pkl
 Backend/uploads/
 Backend/.env
+Backend/app/services/attendance_log.json
 
 # Frontend
 Frontend/node_modules/
