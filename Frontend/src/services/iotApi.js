@@ -1,4 +1,5 @@
-import api from "./api";
+
+const API_URL = "http://localhost:8000";
 
 const request = async (url, options = {}) => {
   const res = await fetch(url, options);
