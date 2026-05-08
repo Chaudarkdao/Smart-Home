@@ -3,7 +3,7 @@ from app.services.stats_service import stats
 from app.services.db_service import insert_history
 import json
 import os
-
+import requests
 USER = os.getenv("AIO_USERNAME")
 KEY = os.getenv("AIO_KEY")
 GROUP_NAME = "yolohome" 
@@ -13,6 +13,38 @@ mqtt = None
 
 last_temp = None
 last_humi = None
+def sync_latest_from_adafruit():
+    if not USER or not KEY:
+        print("[AIO ERROR] Missing AIO_USERNAME or AIO_KEY")
+        return
+
+    headers = {
+        "X-AIO-Key": KEY
+    }
+
+    for key in stats:
+        feed_key = f"{GROUP_NAME}.{key}"
+        url = f"https://io.adafruit.com/api/v2/{USER}/feeds/{feed_key}/data/last"
+
+        try:
+            res = requests.get(url, headers=headers, timeout=5)
+
+            if res.status_code != 200:
+                print(f"[AIO SYNC SKIP] {feed_key}: {res.status_code}")
+                continue
+
+            data = res.json()
+            value = data.get("value")
+
+            if value is None:
+                continue
+
+            stats[key] = float(str(value).split(",")[0])
+
+            print(f"[AIO SYNC] {key} = {stats[key]}")
+
+        except Exception as e:
+            print(f"[AIO SYNC ERROR] {key}: {e}")
 def on_message(client, userdata, msg):
     global last_temp, last_humi
 
@@ -69,6 +101,7 @@ def on_disconnect(client, userdata, disconnect_flags, reason_code, properties):
 
 def init_mqtt():
     global mqtt
+    sync_latest_from_adafruit()
 
     mqtt = mqtt_client.Client(
         callback_api_version=mqtt_client.CallbackAPIVersion.VERSION2
