@@ -1,10 +1,12 @@
 import sqlite3
+from pathlib import Path
 
-DB = "database.db"
-
+BASE_DIR = Path(__file__).resolve().parents[2]
+DB = BASE_DIR / "database.db"
 def init_db():
     conn = sqlite3.connect(DB)
     c = conn.cursor()
+
     c.execute("""
         CREATE TABLE IF NOT EXISTS history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -13,8 +15,11 @@ def init_db():
             time DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     """)
+
     conn.commit()
     conn.close()
+
+    print("Database initialized!")
 
 def insert_history(temp, humi):
     conn = sqlite3.connect(DB)
@@ -25,6 +30,7 @@ def insert_history(temp, humi):
 
 def get_history():
     conn = sqlite3.connect(DB)
+    print("Reading DB:", DB)
     c = conn.cursor()
     c.execute("SELECT temp, humi FROM history ORDER BY id DESC LIMIT 10")
     data = c.fetchall()
