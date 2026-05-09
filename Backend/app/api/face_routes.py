@@ -91,7 +91,7 @@ async def delete_face(name: str):
         if success:
             return {
                 'success': True,
-                'message': f'Đã xóa khuôn mặt "{name}" thành công',
+                'message': f'Đã xóa khuôn mặt {name} thành công',
                 'deleted_name': name
             }
         else:
