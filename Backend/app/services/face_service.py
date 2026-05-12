@@ -79,14 +79,17 @@ class FaceRecognitionService:
         if len(valid_faces) == 1:
             if recognized_name != "unknown":
                 print(f"✅ Phát hiện 1 mặt đã đăng ký: {recognized_name} - Bắt đầu xác thực")
-                await self._send_auth_status(12)  # Gửi auth = 12
+                if self.current_count == 0:
+                    await self._send_auth_status(12)  # Gửi auth = 12
                 await self.handle_counting(recognized_name)
             else:
                 # Nếu là unknown, reset counter
                 print(f"❌ Phát hiện khuôn mặt lạ (unknown) - Xác thực thất bại")
-                await self._send_auth_status(14)  # Gửi auth = 14
-                await self.reset_counting()
-        if len(valid_faces) != 1:
+                if self.current_count == 0:
+                    await self._send_auth_status(12)  # Gửi auth = 12
+                # await self._send_auth_status(14)  # Gửi auth = 14
+                await self.handle_counting(recognized_name)
+        if len(valid_faces) > 1:
                 print(f"⚠️ Phát hiện {len(valid_faces)} khuôn mặt - Xác thực thất bại")
                 await self._send_auth_status(14)  # Gửi auth = 14
                 await self.reset_counting()
@@ -196,12 +199,18 @@ class FaceRecognitionService:
             
             # Nếu đủ 3 lần
             if self.current_count >= 3:
-                print(f"✅ XÁC THỰC THÀNH CÔNG cho {name} sau 3 lần")
-                await self._send_auth_status(13)  # Gửi auth = 13 (Thành công)
-                await self.save_attendance(name)
-                # Reset sau khi điểm danh thành công
-                self.current_person = None
-                self.current_count = 0
+                if name != "unknown":
+                    print(f"✅ XÁC THỰC THÀNH CÔNG cho {name} sau 3 lần")
+                    await self._send_auth_status(13)  # Gửi auth = 13 (Thành công)
+                    await self.save_attendance(name)
+                    # Reset sau khi điểm danh thành công
+                    self.current_person = None
+                    self.current_count = 0
+                else:
+                    print(f"✅ XÁC THỰC THẤT BẠI cho {name} sau 3 lần")
+                    await self._send_auth_status(14)  # Gửi auth = 13 (Thành công)
+                    self.current_person = None
+                    self.current_count = 0
         else:
             # 🔥 NGƯỜI KHÁC XUẤT HIỆN → RESET
             print(f"⚠️ Phát hiện người khác ({name}), reset counter từ {self.current_person}({self.current_count})")
