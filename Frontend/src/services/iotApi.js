@@ -1,4 +1,3 @@
-
 const API_URL = "http://localhost:8000";
 
 const request = async (url, options = {}) => {
@@ -18,6 +17,10 @@ export const getIotData = async () => {
 
 export const getIotHistory = async () => {
   return request(`${API_URL}/api/iot/history`);
+};
+
+export const getIotChartHistory = async () => {
+  return request(`${API_URL}/api/iot/chart-history`);
 };
 
 export const controlDevice = async (device, val) => {
