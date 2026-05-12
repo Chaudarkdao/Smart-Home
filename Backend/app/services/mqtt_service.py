@@ -1,18 +1,39 @@
 from paho.mqtt import client as mqtt_client
 from app.services.stats_service import stats
 from app.services.db_service import insert_history
-import json
 import os
 import requests
+import time
+import threading
+
+insert_thread_started = False
+
 USER = os.getenv("AIO_USERNAME")
 KEY = os.getenv("AIO_KEY")
-GROUP_NAME = "yolohome" 
+GROUP_NAME = "yolohome"
 
 mqtt = None
-mqtt = None
 
-last_temp = None
-last_humi = None
+
+def realtime_insert_loop():
+    while True:
+        try:
+            temp = stats.get("temp")
+            humi = stats.get("humi")
+            light = stats.get("light", 0)
+
+            if temp is not None and humi is not None:
+                insert_history(temp, humi, light)
+                print("[REALTIME INSERT]", temp, humi, light)
+            else:
+                print("[SKIP INSERT] temp/humi chưa có:", temp, humi)
+
+        except Exception as e:
+            print("[REALTIME INSERT ERROR]", e)
+
+        time.sleep(1)
+
+
 def sync_latest_from_adafruit():
     if not USER or not KEY:
         print("[AIO ERROR] Missing AIO_USERNAME or AIO_KEY")
@@ -39,52 +60,42 @@ def sync_latest_from_adafruit():
             if value is None:
                 continue
 
-            stats[key] = float(str(value).split(",")[0])
+            try:
+                stats[key] = float(str(value).split(",")[0])
+            except:
+                stats[key] = value
 
             print(f"[AIO SYNC] {key} = {stats[key]}")
 
         except Exception as e:
             print(f"[AIO SYNC ERROR] {key}: {e}")
+
+
 def on_message(client, userdata, msg):
-    global last_temp, last_humi
+    topic = msg.topic
+    payload = msg.payload.decode().strip()
+
+    print("MQTT RECEIVED:", topic, payload)
 
     try:
-        topic_tail = msg.topic.split('/')[-1]
-        topic_path = topic_tail.split('.')[-1].lower()
-        payload = msg.payload.decode().strip()
+        value = float(str(payload).split(",")[0])
+    except:
+        value = payload
 
-        if payload.startswith('{'):
-            payload = json.loads(payload).get("value", "0")
-
-        payload = str(payload).split(',')[0]
-
-        if topic_path == "dist":
-            topic_path = "pir"
-
-        if topic_path not in stats:
-            return
-
-        val = float(payload)
-        stats[topic_path] = val
-
-        print(f"MQTT Inbox: {topic_path} -> {val}")
-
-        # Chỉ lưu history khi là temp hoặc humi
-        if topic_path == "temp":
-            last_temp = val
-        elif topic_path == "humi":
-            last_humi = val
-        else:
-            return
-
-        if last_temp is not None and last_humi is not None:
-            insert_history(last_temp, last_humi)
-            last_temp = None
-            last_humi = None
-
-    except Exception as e:
-        print(f"Error processing message: {e}")
-
+    if topic.endswith(".temp"):
+        stats["temp"] = value
+    elif topic.endswith(".humi"):
+        stats["humi"] = value
+    elif topic.endswith(".light"):
+        stats["light"] = value
+    elif topic.endswith(".pir"):
+        stats["pir"] = value
+    elif topic.endswith(".led"):
+        stats["led"] = value
+    elif topic.endswith(".fan"):
+        stats["fan"] = value
+    elif topic.endswith(".servo"):
+        stats["servo"] = value
 
 
 def on_connect(client, userdata, flags, reason_code, properties):
@@ -100,7 +111,8 @@ def on_disconnect(client, userdata, disconnect_flags, reason_code, properties):
 
 
 def init_mqtt():
-    global mqtt
+    global mqtt, insert_thread_started
+
     sync_latest_from_adafruit()
 
     mqtt = mqtt_client.Client(
@@ -114,6 +126,12 @@ def init_mqtt():
 
     mqtt.connect("io.adafruit.com", 1883, 60)
     mqtt.loop_start()
+
+    if not insert_thread_started:
+        t = threading.Thread(target=realtime_insert_loop, daemon=True)
+        t.start()
+        insert_thread_started = True
+        print("[INSERT THREAD STARTED]")
 
     print("MQTT starting...")
 

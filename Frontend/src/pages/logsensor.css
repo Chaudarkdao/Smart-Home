@@ -1,0 +1,453 @@
+.log-premium-page {
+  min-height: 100vh;
+  padding: 32px;
+  color: #334155;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  background: linear-gradient(
+    180deg,
+    #9fd6d6 0%,
+    #c9efef 38%,
+    #f4ffff 75%,
+    #ffffff 100%
+  );
+}
+
+.log-premium-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 40px;
+}
+
+.log-hi-text {
+  margin: 0 0 6px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.log-premium-header h1 {
+  margin: 0;
+  font-size: 42px;
+  line-height: 1.1;
+  color: #0f172a;
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+
+.log-top-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.log-nav-pill {
+  text-decoration: none;
+  padding: 9px 16px;
+  border-radius: 999px;
+  color: #475569;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+}
+
+.log-nav-pill.active {
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.log-header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.log-status-pill {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+  color: #334155;
+  font-weight: 700;
+}
+
+.log-user-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  border: 2px solid #fff;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+}
+
+.log-premium-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+  align-items: stretch;
+}
+
+.log-history-card {
+  min-height: 536px;
+  padding: 28px;
+  border-radius: 40px;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+}
+
+.log-history-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.log-mini-title {
+  margin: 0 0 8px;
+  color: #64748b;
+  font-size: 12px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  font-weight: 900;
+}
+
+.log-history-header h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: -0.6px;
+}
+
+.log-history-header p {
+  margin: 8px 0 0;
+  max-width: 560px;
+  color: #64748b;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.log-count-pill {
+  white-space: nowrap;
+  padding: 10px 16px;
+  border-radius: 999px;
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  font-weight: 800;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.04);
+}
+
+.log-empty-box {
+  min-height: 320px;
+  display: grid;
+  place-items: center;
+  color: #64748b;
+  font-weight: 700;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.42);
+  border: 1px dashed rgba(100, 116, 139, 0.25);
+}
+
+.log-table-wrap {
+  max-height: 440px;
+  overflow: auto;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  clip-path: inset(0 round 28px);
+}
+
+/* Chrome */
+.log-table-wrap::-webkit-scrollbar {
+  width: 10px;
+}
+
+.log-table-wrap::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 999px;
+}
+
+.log-table-wrap::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.22);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.log-table-wrap::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 42, 0.35);
+  background-clip: padding-box;
+}
+
+.log-table {
+  width: 100%;
+  min-width: 720px;
+
+  border-collapse: separate;
+  border-spacing: 0;
+
+  border-radius: 28px;
+  overflow: hidden;
+}
+
+.log-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: rgba(226, 232, 240, 0.92);
+  backdrop-filter: blur(12px);
+}
+
+.log-table th {
+  padding: 16px;
+  text-align: left;
+  color: #475569;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  font-weight: 900;
+}
+
+.log-table td {
+  padding: 15px 16px;
+  color: #334155;
+  font-weight: 650;
+  border-top: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.log-table tbody tr {
+  transition: 0.18s ease;
+}
+
+.log-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.log-table strong {
+  color: #0f172a;
+  font-weight: 900;
+}
+
+.log-weather-card {
+  min-height: 536px;
+  border-radius: 40px;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.log-weather-img {
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.log-weather-img img {
+  height: 110px;
+  object-fit: contain;
+  opacity: 0.82;
+  filter: drop-shadow(0 10px 15px rgba(255, 255, 255, 0.2));
+  transition: transform 0.5s ease;
+}
+
+.log-weather-img img:hover {
+  transform: scale(1.05);
+}
+
+.log-weather-content {
+  flex: 1;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.log-weather-date {
+  margin: 0 0 8px;
+  color: #475569;
+  font-weight: 700;
+}
+
+.log-weather-content h2 {
+  margin: 0;
+  font-size: 88px;
+  line-height: 1;
+  color: #334155;
+  font-weight: 300;
+  letter-spacing: -4px;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.log-weather-content p:last-child {
+  margin: 10px 0 0;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.log-weather-footer {
+  margin: 0 22px 22px;
+  padding: 26px 28px;
+
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+
+  background: rgba(255, 255, 255, 0.48);
+  backdrop-filter: blur(18px) saturate(160%);
+
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 28px;
+
+  box-shadow: 0 14px 35px rgba(15, 23, 42, 0.06);
+}
+.log-weather-footer p {
+  margin: 0 0 6px;
+  color: #94a3b8;
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+}
+
+.log-weather-footer h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.log-weather-footer h3 span {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.log-last-time {
+  padding: 0 32px 28px;
+  color: #64748b;
+  font-weight: 700;
+  text-align: center;
+}
+
+.log-last-time strong {
+  color: #0f172a;
+}
+
+@media (max-width: 1024px) {
+  .log-premium-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .log-weather-card {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .log-premium-page {
+    padding: 18px;
+  }
+
+  .log-premium-header {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .log-premium-header h1 {
+    font-size: 34px;
+  }
+
+  .log-header-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .log-history-header {
+    flex-direction: column;
+  }
+}
+
+.log-table thead {
+  overflow: hidden;
+}
+
+.log-table thead tr th:first-child {
+  border-top-left-radius: 28px;
+}
+
+.log-table thead tr th:last-child {
+  border-top-right-radius: 28px;
+}
+
+.log-table tbody tr:last-child td:first-child {
+  border-bottom-left-radius: 28px;
+}
+
+.log-table tbody tr:last-child td:last-child {
+  border-bottom-right-radius: 28px;
+}
+.log-premium-grid {
+  display: block;
+}
+
+.log-history-card {
+  min-height: 620px;
+  padding: 28px;
+  border-radius: 40px;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+}
+
+.log-table {
+  width: 100%;
+  min-width: 920px;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 28px;
+  overflow: hidden;
+}
+.iot-premium-page,
+.log-premium-page {
+  padding: 32px 0 !important;
+}
+
+.iot-premium-shell,
+.log-premium-shell {
+  width: min(1280px, calc(100% - 64px));
+  margin: 0 auto !important;
+}
+
+.iot-premium-header,
+.log-premium-header {
+  height: 92px;
+  margin-bottom: 40px !important;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.iot-top-actions,
+.log-top-actions {
+  height: 40px;
+  display: flex;
+  align-items: center;
+}

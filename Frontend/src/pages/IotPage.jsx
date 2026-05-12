@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   LineChart,
@@ -12,8 +12,154 @@ import {
 import {
   controlDevice,
   getIotData,
-  getIotHistory,
+  getIotChartHistory,
 } from "../services/iotApi";
+
+import fanImg from "../assets/smart_fan.png";
+import ledImg from "../assets/smart_lamp.png";
+import lockImg from "../assets/smart_lock.png";
+import weatherImg from "../assets/toppng.com-real-sun-and-clouds-5000x3232.png";
+
+import "./iotpage.css";
+
+const VISIBLE_POINTS = 5;
+
+const toNumber = (value, fallback = 0) => {
+  if (value === undefined || value === null || value === "") return fallback;
+  const num = Number(value);
+  return Number.isNaN(num) ? fallback : num;
+};
+
+const formatLogTime = (value) => {
+  if (!value) return "--:--";
+
+  if (typeof value === "string") {
+    const match = value.match(/(\d{2}:\d{2})(?::\d{2})?/);
+    if (match) return match[1];
+
+    return value;
+  }
+
+  return String(value);
+};
+
+const normalizeChartHistory = (historyRes) => {
+  if (!historyRes?.chart || !Array.isArray(historyRes.chart)) return [];
+
+  return historyRes.chart.map((row, index) => ({
+    id: `${row.time}_${index}`,
+    time: formatLogTime(row.time),
+    temp: toNumber(row.temp),
+    humi: toNumber(row.humi),
+  }));
+};
+
+function SensorChart({ title, data, dataKey, stroke }) {
+  const [startIndex, setStartIndex] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const dragState = useRef({
+    isDown: false,
+    startX: 0,
+    startIndex: 0,
+  });
+
+  useEffect(() => {
+    if (data.length <= VISIBLE_POINTS) {
+      setStartIndex(0);
+      return;
+    }
+
+    setStartIndex(data.length - VISIBLE_POINTS);
+  }, [data.length]);
+
+  const maxStartIndex = Math.max(0, data.length - VISIBLE_POINTS);
+
+  const visibleData = useMemo(() => {
+    return data.slice(startIndex, startIndex + VISIBLE_POINTS);
+  }, [data, startIndex]);
+
+  const handleMouseDown = (e) => {
+    dragState.current = {
+      isDown: true,
+      startX: e.clientX,
+      startIndex,
+    };
+
+    setIsDragging(true);
+  };
+
+  const stopDragging = () => {
+    dragState.current.isDown = false;
+    setIsDragging(false);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!dragState.current.isDown) return;
+
+    const diff = e.clientX - dragState.current.startX;
+    const step = Math.round(diff / 45);
+
+    let nextIndex = dragState.current.startIndex - step;
+    nextIndex = Math.max(0, Math.min(nextIndex, maxStartIndex));
+
+    setStartIndex(nextIndex);
+  };
+
+  return (
+    <div className="iot-chart-card">
+      <h3 className="iot-card-label">{title}</h3>
+
+      <div
+        className="iot-chart-drag-area"
+        onMouseDown={handleMouseDown}
+        onMouseLeave={stopDragging}
+        onMouseUp={stopDragging}
+        onMouseMove={handleMouseMove}
+        style={{
+          cursor: isDragging ? "grabbing" : "grab",
+        }}
+      >
+        <ResponsiveContainer width="100%" height={190}>
+          <LineChart
+            data={visibleData}
+            margin={{ top: 12, right: 20, left: 0, bottom: 8 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+            <XAxis dataKey="time" interval={0} tick={{ fontSize: 11 }} />
+            <YAxis width={40} tick={{ fontSize: 11 }} domain={["auto", "auto"]} />
+
+            <Tooltip
+              labelFormatter={(label) => `Thời gian: ${label}`}
+              formatter={(value, name) => {
+                const label = name === "temp" ? "Nhiệt độ" : "Độ ẩm";
+                const unit = name === "temp" ? "°C" : "%";
+                return [`${value}${unit}`, label];
+              }}
+            />
+
+            <Line
+              type="monotone"
+              dataKey={dataKey}
+              stroke={stroke}
+              strokeWidth={2.5}
+              dot={{ r: 4 }}
+              activeDot={{ r: 6 }}
+              isAnimationActive
+              animationDuration={250}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      <p className="iot-chart-hint">
+  {data.length > VISIBLE_POINTS
+    ? "Kéo trái để xem thêm dữ liệu."
+    : ""}
+</p>
+    </div>
+  );
+}
 
 export default function IotPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -26,41 +172,69 @@ export default function IotPage() {
     led: 0,
     fan: 4,
     servo: 8,
+    auth: 10,
   });
 
-  const [history, setHistory] = useState({
-    temp: [],
-    humi: [],
-  });
+  const [chartHistory, setChartHistory] = useState({ chart: [] });
 
-  const fetchAll = async () => {
+  const fetchRealtimeData = async () => {
     try {
-      const [dataRes, historyRes] = await Promise.all([
-        getIotData(),
-        getIotHistory(),
-      ]);
+      const dataRes = await getIotData();
 
       setIotData((prev) => ({
         ...prev,
         ...dataRes,
-        pir: dataRes.pir ?? dataRes.dist ?? 0,
+        pir: dataRes.pir ?? dataRes.dist ?? prev.pir ?? 0,
       }));
-
-      setHistory(historyRes);
     } catch (error) {
-      console.error("IoT error:", error);
+      console.error("Realtime IoT error:", error);
     }
   };
 
+  const fetchChartHistory = async () => {
+    try {
+      const historyRes = await getIotChartHistory();
+      setChartHistory(historyRes || { chart: [] });
+    } catch (error) {
+      console.error("Chart history error:", error);
+    }
+  };
+
+  const fetchAll = async () => {
+    await Promise.all([fetchRealtimeData(), fetchChartHistory()]);
+  };
+
   useEffect(() => {
-    fetchAll();
-    const interval = setInterval(fetchAll, 3000);
-    return () => clearInterval(interval);
+    fetchRealtimeData();
+    fetchChartHistory();
+
+    const realtimeInterval = setInterval(fetchRealtimeData, 3000);
+    const chartInterval = setInterval(fetchChartHistory, 30000);
+
+    return () => {
+      clearInterval(realtimeInterval);
+      clearInterval(chartInterval);
+    };
   }, []);
+
+  const chartData = useMemo(() => {
+    return normalizeChartHistory(chartHistory)
+      .filter((row) => {
+        const [h] = row.time.split(":").map(Number);
+        return h >= 0 && h <= 23;
+      })
+      .slice(-288)
+      .map((row) => ({
+        time: row.time,
+        temp: Number(row.temp),
+        humi: Number(row.humi),
+      }));
+  }, [chartHistory]);
 
   const handleControl = async (device, value) => {
     try {
       setIsLoading(true);
+
       await controlDevice(device, value);
 
       setIotData((prev) => ({
@@ -77,21 +251,8 @@ export default function IotPage() {
     }
   };
 
-  const tempWarning = Number(iotData.temp) > 40;
-
-  const tempChartData = useMemo(() => {
-    return (history.temp || []).map((v, i) => ({
-      name: `${i + 1}`,
-      value: v,
-    }));
-  }, [history.temp]);
-
-  const humiChartData = useMemo(() => {
-    return (history.humi || []).map((v, i) => ({
-      name: `${i + 1}`,
-      value: v,
-    }));
-  }, [history.humi]);
+  const fanLevel = Math.max(0, Number(iotData.fan) - 4);
+  const doorUnlocked = Number(iotData.servo) === 9;
 
   const todayText = new Date().toLocaleDateString("en-US", {
     weekday: "short",
@@ -99,122 +260,147 @@ export default function IotPage() {
     day: "numeric",
   });
 
-  const ledModes = [
-    { label: "Off", value: 0, icon: "⚫" },
-    { label: "White", value: 1, icon: "⚪" },
-    { label: "Green", value: 2, icon: "🟢" },
-    { label: "Red", value: 3, icon: "🔴" },
-  ];
+  const authVal = Number(iotData.auth ?? 10);
 
-  const fanLevel = Math.max(0, Number(iotData.fan) - 4);
+  const securityText =
+    authVal === 11
+      ? "MOTION DETECTED"
+      : authVal === 12
+      ? "VERIFYING FACE"
+      : authVal === 13
+      ? "AUTH SUCCESS"
+      : authVal === 14
+      ? "AUTH FAILED"
+      : "NO MOTION";
 
-  const handleFanSlider = async (e) => {
-    const level = Number(e.target.value); // 0, 1, 2, 3
-    const apiValue = level + 4; // 4, 5, 6, 7
-    await handleControl("fan", apiValue);
+  const handleLedSlider = (e) => {
+    handleControl("led", Number(e.target.value));
+  };
+
+  const handleFanSlider = (e) => {
+    handleControl("fan", Number(e.target.value) + 4);
   };
 
   return (
-    <div className="iot-dashboard-page">
-      <div className="iot-dashboard-shell">
-        <header className="iot-dashboard-header">
+    <div className="iot-premium-page">
+      <div className="iot-premium-shell">
+        <header className="iot-premium-header">
           <div>
-            <p className="iot-dashboard-mini">SMART HOME</p>
-            <h1>IoT Dashboard</h1>
+            <p className="iot-hi-text">Hi Khang,</p>
+            <h1>Welcome to your home</h1>
+
+            <div className="iot-top-actions">
+              <Link to="/iot" className="iot-nav-pill active">
+                📡 IoT
+              </Link>
+              <Link to="/logsensor" className="iot-nav-pill">
+                📊 Log Sensor
+              </Link>
+            </div>
           </div>
 
-          <div className="iot-top-actions">
-            <Link to="/" className="iot-nav-pill">🏠 Home</Link>
-            <Link to="/face" className="iot-nav-pill">👤 Face</Link>
-            <span className="iot-nav-pill active">📡 IoT</span>
+          <div className="iot-header-right">
+            <div className="iot-status-pill">
+              <span>💧 {iotData.humi}%</span>
+              <span>🌡️ {iotData.temp}°</span>
+            </div>
+
+            <div className="iot-user-circle">👤</div>
           </div>
         </header>
 
-        {tempWarning && (
-          <div className="iot-alert danger">
-            ⚠️ Nhiệt độ quá cao ({iotData.temp}°C)
-          </div>
-        )}
+        <main className="iot-premium-grid">
+          <section className="iot-left-panel">
+            <div className="iot-chart-row">
+              <SensorChart
+                title="TEMPERATURE LOG"
+                data={chartData}
+                dataKey="temp"
+                stroke="#f97316"
+              />
 
-        <p className="iot-welcome-text">Hi user,</p>
-        <h2 className="iot-welcome-heading">Welcome to your home</h2>
-
-        <div className="iot-main-layout">
-          <div className="iot-left-column">
-            <div className="iot-chart-grid">
-              <div className="iot-chart-card">
-                <p className="iot-card-label">TEMPERATURE LOG</p>
-
-                <ResponsiveContainer width="100%" height={160}>
-                  <LineChart data={tempChartData}>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line dataKey="value" stroke="#4ade80" strokeWidth={3} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div className="iot-chart-card">
-                <p className="iot-card-label">HUMIDITY LOG</p>
-
-                <ResponsiveContainer width="100%" height={160}>
-                  <LineChart data={humiChartData}>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line dataKey="value" stroke="#60a5fa" strokeWidth={3} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
+              <SensorChart
+                title="HUMIDITY LOG"
+                data={chartData}
+                dataKey="humi"
+                stroke="#3b82f6"
+              />
             </div>
 
-            <div className="iot-device-grid">
+            <div className="iot-device-row">
               <div className="iot-device-card">
-                <h3>💡 Lamp</h3>
-                <p className="iot-device-subtitle">
-                  Current mode: {iotData.led}
-                </p>
-
-                <div className="iot-led-grid">
-                  {ledModes.map((mode) => (
-                    <button
-                      key={mode.value}
-                      disabled={isLoading}
-                      className={`iot-led-btn ${
-                        Number(iotData.led) === mode.value ? "active" : ""
-                      }`}
-                      onClick={() => handleControl("led", mode.value)}
-                    >
-                      <span>{mode.icon}</span>
-                      <small>{mode.label}</small>
-                    </button>
-                  ))}
+                <div className="iot-device-img-wrap">
+                  <img src={ledImg} alt="Smart Lamp" />
                 </div>
-              </div>
 
-              <div className="iot-device-card">
-                <h3>🌀 Fan</h3>
-                <p className="iot-device-subtitle">
-                  Speed level: {fanLevel}
-                </p>
+                <div className="iot-device-title">
+                  <h3>Smart Lamp</h3>
+                  <p>RGB Light</p>
+                </div>
 
-                <div className="iot-slider-box">
+                <div className="mode-slider-container">
                   <input
                     type="range"
                     min="0"
                     max="3"
-                    step="1"
+                    value={Number(iotData.led)}
+                    disabled={isLoading}
+                    onChange={handleLedSlider}
+                    className="mode-slider"
+                    data-value={Number(iotData.led)}
+                  />
+
+                  <div className="mode-slider-track">
+                    <div
+                      className="mode-slider-thumb"
+                      style={{ left: `${2 + Number(iotData.led) * 47}px` }}
+                    />
+                  </div>
+
+                  <div className="mode-labels mode-labels-led">
+  <span>Off</span>
+  <span>Green</span>
+  <span>Red</span>
+  <span>White</span>
+</div>
+                </div>
+              </div>
+
+              <div className="iot-device-card">
+                <div className="iot-device-img-wrap">
+                  <img
+                    src={fanImg}
+                    alt="Smart Fan"
+                    className={fanLevel > 0 ? "iot-fan-spin" : ""}
+                  />
+                </div>
+
+                <div className="iot-device-title">
+                  <h3>Smart Fan</h3>
+                  <p>PWM Control</p>
+                </div>
+
+                <div className="mode-slider-container">
+                  <input
+                    type="range"
+                    min="0"
+                    max="3"
                     value={fanLevel}
                     disabled={isLoading}
                     onChange={handleFanSlider}
-                    className="iot-fan-slider"
+                    className="mode-slider"
+                    data-value={fanLevel}
                   />
 
-                  <div className="iot-slider-labels">
-                    <span>Off</span>
+                  <div className="mode-slider-track">
+                    <div
+                      className="mode-slider-thumb"
+                      style={{ left: `${2 + fanLevel * 47}px` }}
+                    />
+                  </div>
+
+                  <div className="mode-labels">
+                    <span>0</span>
                     <span>1</span>
                     <span>2</span>
                     <span>3</span>
@@ -223,82 +409,59 @@ export default function IotPage() {
               </div>
 
               <div className="iot-device-card">
-                <h3>🔐 Door</h3>
-                <p className="iot-device-subtitle">
-                  Status: {Number(iotData.servo) === 9 ? "Unlocked" : "Locked"}
-                </p>
-
-                <div className="iot-door-actions">
-                  <button
-                    disabled={isLoading}
-                    className={`iot-door-btn ${
-                      Number(iotData.servo) === 8 ? "active" : ""
-                    }`}
-                    onClick={() => handleControl("servo", 8)}
-                  >
-                    🔒 Lock
-                  </button>
-
-                  <button
-                    disabled={isLoading}
-                    className={`iot-door-btn ${
-                      Number(iotData.servo) === 9 ? "active" : ""
-                    }`}
-                    onClick={() => handleControl("servo", 9)}
-                  >
-                    🔓 Unlock
-                  </button>
+                <div className="iot-device-img-wrap">
+                  <img src={lockImg} alt="Smart Lock" />
                 </div>
+
+                <div className="iot-device-title">
+                  <h3>Smart Lock</h3>
+                  <p>Servo Toggle</p>
+                </div>
+
+                <label className={`iot-lock-switch ${doorUnlocked ? "is-on" : ""}`}>
+  <input
+    type="checkbox"
+    checked={doorUnlocked}
+    disabled={isLoading}
+    onChange={(e) =>
+      handleControl("servo", e.target.checked ? 9 : 8)
+    }
+  />
+
+  <span className="iot-lock-track">
+    <span className="iot-lock-thumb" />
+  </span>
+</label>
               </div>
             </div>
-          </div>
+          </section>
 
-          <div className="iot-right-column">
-            <div className="iot-weather-card">
-              <div className="iot-weather-icon">🌤️</div>
-              <p>{todayText}</p>
-              <h1>{iotData.temp}°</h1>
+          <aside className="iot-weather-card">
+            <div className="iot-weather-img">
+              <img src={weatherImg} alt="Weather" />
+            </div>
+
+            <div className="iot-weather-content">
+              <p className="iot-weather-date">{todayText}</p>
+              <h2>{iotData.temp}°</h2>
               <p>Indoor temperature</p>
             </div>
 
-            <div className="iot-quick-stats">
-              <div className="iot-quick-card">
-                <p>Temp</p>
-                <h3>{iotData.temp}°C</h3>
+            <div className="iot-weather-footer">
+              <div>
+                <p>Security Status</p>
+                <h3 className={`status-${authVal}`}>{securityText}</h3>
               </div>
 
-              <div className="iot-quick-card">
-                <p>Humi</p>
-                <h3>{iotData.humi}%</h3>
-              </div>
-
-              <div className="iot-quick-card">
-                <p>Light</p>
-                <h3>{iotData.light}</h3>
-              </div>
-
-              <div className="iot-quick-card">
-                <p>PIR</p>
-                <h3>{Number(iotData.pir) ? "Có chuyển động" : "Không có"}</h3>
-              </div>
-
-              <div className="iot-quick-card">
-                <p>LED</p>
-                <h3>Mode {iotData.led}</h3>
-              </div>
-
-              <div className="iot-quick-card">
-                <p>Fan</p>
-                <h3>Speed {fanLevel}</h3>
-              </div>
-
-              <div className="iot-quick-card">
-                <p>Door</p>
-                <h3>{Number(iotData.servo) === 9 ? "Unlocked" : "Locked"}</h3>
+              <div>
+                <p>Ambient Light</p>
+                <h3>
+                  {iotData.light} <span>%</span>
+                </h3>
               </div>
             </div>
-          </div>
-        </div>
+          </aside>
+        </main>
       </div>
     </div>
   );

@@ -2,14 +2,16 @@ from fastapi import APIRouter
 from app.services.stats_service import stats
 from app.services.db_service import get_history
 from app.services.mqtt_service import publish
-
+from app.services.db_service import get_chart_history
 router = APIRouter(prefix="/api/iot", tags=["IoT"])
 
 @router.get("/data")
 async def get_data():
     return stats
 
-
+@router.get("/chart-history")
+def chart_history():
+    return get_chart_history()
 @router.get("/history")
 async def history():
     return get_history()
