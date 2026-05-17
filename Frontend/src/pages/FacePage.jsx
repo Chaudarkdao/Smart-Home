@@ -287,7 +287,9 @@ export default function FacePage() {
             </section>
 
             <SensorFaceGate />
+          </div>
 
+          <div className="face-right-panel">
             <section className="face-tools-card face-glass-card">
               <p className="iot-card-label">ĐĂNG KÝ</p>
               <h2 className="face-tools-heading">Khuôn mặt mới</h2>
@@ -349,9 +351,8 @@ export default function FacePage() {
                 </div>
               )}
             </section>
-          </div>
 
-          <aside className="face-result-aside face-glass-card">
+            <aside className="face-result-aside face-glass-card">
             <div className="face-result-header">
               <p className="iot-card-label">RESULT</p>
               <h2>Kết quả đăng ký</h2>
@@ -364,7 +365,8 @@ export default function FacePage() {
                 renderRegisterResult()
               )}
             </div>
-          </aside>
+            </aside>
+          </div>
         </main>
 
         <div

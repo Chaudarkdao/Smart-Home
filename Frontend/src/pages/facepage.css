@@ -42,10 +42,17 @@
   margin-top: 0;
 }
 
+.face-right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
 .face-result-aside {
   display: flex;
   flex-direction: column;
-  min-height: 320px;
+  min-height: 0;
+  flex: 1;
 }
 
 .face-result-header {
@@ -454,7 +461,7 @@
   border-radius: 24px;
   overflow: hidden;
   background: #0f172a;
-  min-height: 200px;
+  aspect-ratio: 4 / 3;
   border: 1px solid rgba(15, 23, 42, 0.12);
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
 }
@@ -462,7 +469,8 @@
 .sensor-video {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
+  object-fit: cover;
   vertical-align: middle;
 }
 
@@ -476,13 +484,17 @@
 }
 
 .sensor-placeholder {
-  padding: 2.5rem 1.5rem;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   color: #94a3b8;
 }
 
 .sensor-placeholder p {
-  margin: 0.35rem 0;
+  margin: 0;
 }
 
 .sensor-sub {

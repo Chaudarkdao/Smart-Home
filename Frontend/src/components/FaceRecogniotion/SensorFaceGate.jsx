@@ -301,7 +301,6 @@ export default function SensorFaceGate() {
         ) : (
           <div className="sensor-placeholder">
             <p>Camera đang tắt.</p>
-            <p className="sensor-sub">Chờ tín hiệu chuyển động (auth = 11) hoặc hết thời gian chờ sau lần nhận diện…</p>
           </div>
         )}
       </div>
