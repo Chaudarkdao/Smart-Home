@@ -1,0 +1,535 @@
+/* Face page — đồng bộ glass / typography với IoT & Log Sensor (iotpage.css) */
+
+.face-glass-card {
+  padding: 28px;
+  border-radius: 40px;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+}
+
+.face-intro-card {
+  margin-bottom: 24px;
+}
+
+.face-page-title {
+  margin: 0 0 8px;
+  color: #0f172a;
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: -0.6px;
+}
+
+.face-tools-heading {
+  margin: 4px 0 0;
+  color: #0f172a;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.4px;
+}
+
+.face-intro-text {
+  margin: 0;
+  max-width: 640px;
+  color: #64748b;
+  font-weight: 600;
+  line-height: 1.55;
+  font-size: 15px;
+}
+
+.face-tools-card {
+  margin-top: 0;
+}
+
+.face-result-aside {
+  display: flex;
+  flex-direction: column;
+  min-height: 320px;
+}
+
+.face-result-header {
+  margin-bottom: 20px;
+}
+
+.face-result-header h2 {
+  margin: 8px 0 0;
+  color: #0f172a;
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+}
+
+.face-result-body {
+  flex: 1;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  padding: 20px;
+  min-height: 200px;
+}
+
+.face-result-placeholder {
+  height: 100%;
+  min-height: 160px;
+  display: grid;
+  place-items: center;
+  color: #64748b;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.face-result-inner {
+  color: #334155;
+}
+
+.face-result-info {
+  margin-bottom: 16px;
+}
+
+.face-result-label {
+  margin: 0 0 6px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.face-highlight {
+  display: inline-block;
+  padding: 10px 16px;
+  border-radius: 16px;
+  background: rgba(226, 232, 240, 0.85);
+  color: #0f172a;
+  font-weight: 900;
+  font-size: 18px;
+}
+
+.face-error-msg {
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(254, 226, 226, 0.65);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  color: #991b1b;
+  font-weight: 700;
+}
+
+.face-result-status {
+  margin-bottom: 14px;
+}
+
+.face-badge {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.face-badge.success {
+  background: rgba(34, 197, 94, 0.18);
+  color: #166534;
+}
+
+.face-badge.failed {
+  background: rgba(248, 113, 113, 0.2);
+  color: #991b1b;
+}
+
+.face-annotated-wrap {
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  margin-top: 8px;
+}
+
+.face-annotated-wrap img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.face-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.face-section-head h4 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.face-tool-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.face-section-box + .face-section-box {
+  margin-top: 28px;
+  padding-top: 28px;
+  border-top: 1px solid rgba(148, 163, 184, 0.28);
+}
+
+.face-btn {
+  border: none;
+  cursor: pointer;
+  padding: 9px 16px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 13px;
+  transition: 0.18s ease;
+}
+
+.face-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.face-btn-primary {
+  color: #fff;
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  box-shadow: 0 6px 16px rgba(14, 165, 233, 0.28);
+}
+
+.face-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.face-btn-secondary {
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+.face-btn-secondary:hover:not(:disabled) {
+  background: #fff;
+}
+
+.face-btn-muted {
+  color: #64748b;
+  background: rgba(241, 245, 249, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.face-btn-save.ready {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(34, 197, 94, 0.28);
+}
+
+.face-input-text {
+  width: 100%;
+  max-width: 360px;
+  padding: 11px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(255, 255, 255, 0.75);
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 12px;
+}
+
+.face-input-text::placeholder {
+  color: #94a3b8;
+}
+
+.face-input-file {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.face-preview-wrap {
+  position: relative;
+  margin-top: 8px;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  max-width: 100%;
+}
+
+.face-preview-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  vertical-align: middle;
+}
+
+.face-detect-canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.face-compare-camera-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.face-compare-upload-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .face-compare-upload-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.face-meta-section {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .face-meta-section {
+    grid-template-columns: 1fr;
+  }
+}
+
+.face-meta-card-title {
+  margin: 0 0 14px;
+  color: #0f172a;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.face-attendance-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.face-attendance-table th,
+.face-attendance-table td {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+  color: #334155;
+  font-weight: 650;
+}
+
+.face-attendance-table th {
+  color: #475569;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  font-weight: 900;
+}
+
+.face-meta-empty {
+  margin: 0;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.face-name-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.face-name-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 12px;
+  border-radius: 999px;
+  background: rgba(241, 245, 249, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.face-name-chip button {
+  border: none;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #b91c1c;
+  background: rgba(254, 202, 202, 0.65);
+}
+
+.face-name-chip button:hover:not(:disabled) {
+  background: rgba(252, 165, 165, 0.85);
+}
+
+.face-name-chip button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Cổng cảm biến — glass giống IoT / Log */
+.sensor-gate-card {
+  margin-bottom: 24px;
+  padding: 24px 28px;
+  border-radius: 40px;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+}
+
+.sensor-gate-label {
+  margin: 0 0 6px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.1px;
+}
+
+.sensor-gate-head h3 {
+  margin: 6px 0 8px;
+  color: #0f172a;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.4px;
+}
+
+.sensor-gate-hint {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #64748b;
+  font-weight: 600;
+  max-width: 52rem;
+}
+
+.sensor-gate-hint strong {
+  color: #0f172a;
+}
+
+.sensor-auth-val {
+  font-family: ui-monospace, monospace;
+  color: #0284c7;
+  font-weight: 800;
+}
+
+.sensor-banner {
+  margin: 14px 0 16px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(224, 242, 254, 0.75);
+  border: 1px solid rgba(125, 211, 252, 0.55);
+  color: #0c4a6e;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.sensor-video-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  border-radius: 24px;
+  overflow: hidden;
+  background: #0f172a;
+  min-height: 200px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+}
+
+.sensor-video {
+  display: block;
+  width: 100%;
+  height: auto;
+  vertical-align: middle;
+}
+
+.sensor-overlay-canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.sensor-placeholder {
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.sensor-placeholder p {
+  margin: 0.35rem 0;
+}
+
+.sensor-sub {
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.face-camera-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(8px);
+}
+
+.face-camera-dialog {
+  width: min(520px, 100%);
+  padding: 24px;
+  border-radius: 32px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+}
+
+.face-camera-dialog h3 {
+  margin: 0 0 16px;
+  color: #0f172a;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.face-camera-dialog .face-camera-video,
+.face-camera-dialog video {
+  width: 100%;
+  border-radius: 20px;
+  background: #0f172a;
+  display: block;
+}
+
+.face-camera-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  justify-content: flex-end;
+}

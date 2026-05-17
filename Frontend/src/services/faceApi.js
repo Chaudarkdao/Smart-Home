@@ -1,4 +1,4 @@
-﻿import api from "./api";
+import api from "./api";
 
 export const detectFaces = async (file) => {
   const formData = new FormData();
@@ -28,5 +28,20 @@ export const registerFace = async (name, file) => {
   const res = await api.post(`/api/face/register/${encodeURIComponent(name)}`, formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
+  return res.data;
+};
+
+export const getFaceStatus = async () => {
+  const res = await api.get("/api/face/status");
+  return res.data;
+};
+
+export const listFaces = async () => {
+  const res = await api.get("/api/face/list");
+  return res.data;
+};
+
+export const deleteFaceByName = async (name) => {
+  const res = await api.delete(`/api/face/delete/${encodeURIComponent(name)}`);
   return res.data;
 };

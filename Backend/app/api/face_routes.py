@@ -18,7 +18,7 @@ async def detect_faces(file: UploadFile = File(...)):
         if image is None:
             raise HTTPException(400, "Invalid image file")
         
-        # Detect faces
+        # Detect facessimi
         results = await face_service.detect_faces(image)
         
         return {
@@ -59,13 +59,58 @@ async def register_face(name: str, file: UploadFile = File(...)):
     try:
         image_bytes = await file.read()
         image = cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_COLOR)
-        
-        success = await face_service.register_face(name, image)
+
+        if image is None:
+            raise HTTPException(400, "Ảnh không hợp lệ hoặc không đọc được (JPEG/PNG).")
+
+        success, message = await face_service.register_face(name, image)
         
         return {
             'success': success,
             'name': name if success else None,
-            'message': f'Đã đăng ký khuôn mặt cho {name}' if success else 'Không tìm thấy khuôn mặt'
+            'message': message
+        }
+    except Exception as e:
+        raise HTTPException(500, str(e))
+@router.get("/list")
+async def list_faces():
+    """Lấy danh sách tất cả khuôn mặt đã đăng ký"""
+    try:
+        result = face_service.get_all_faces()
+        return {
+            'success': True,
+            'count': result['count'],
+            'names': result['names']
+        }
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+@router.delete("/delete/{name}")
+async def delete_face(name: str):
+    """Xóa khuôn mặt theo tên"""
+    try:
+        success = face_service.delete_face(name)
+        
+        if success:
+            return {
+                'success': True,
+                'message': f'Đã xóa khuôn mặt {name} thành công',
+                'deleted_name': name
+            }
+        else:
+            raise HTTPException(404, f'Không tìm thấy khuôn mặt "{name}"')
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, str(e))
+@router.get("/status")
+async def get_counting_status():
+    """Xem trạng thái đếm hiện tại"""
+    try:
+        result = face_service.get_counting_status()
+        return {
+            'success': True,
+            'data': result
         }
     except Exception as e:
         raise HTTPException(500, str(e))
