@@ -147,7 +147,7 @@ export default function SensorFaceGate() {
     async (res, ccBefore) => {
       const count = Number(res?.count ?? 0);
       if (count > 1) {
-        setBanner("Xác nhận thất bại: phát hiện nhiều hơn một người. Đang đóng camera.");
+        setBanner("Verification failed: multiple people detected. Closing camera.");
         cooldownUntilRef.current = Date.now() + 3000;
         endScan();
         window.setTimeout(() => setBanner(""), 5000);
@@ -160,14 +160,14 @@ export default function SensorFaceGate() {
 
       const name = res.faces?.[0]?.recognized_name;
       if (name && name !== "unknown") {
-        setBanner(`Xác nhận thành công: ${name}. Cửa đang mở — chờ 10 giây trước khi tiếp tục quan sát.`);
+        setBanner(`Verified: ${name}. Door unlocked — resuming in 10s.`);
         cooldownUntilRef.current = Date.now() + 10000;
         endScan();
         window.setTimeout(() => setBanner(""), 10000);
         return;
       }
 
-      setBanner("Xác thực thất bại: khuôn mặt chưa đăng ký (unknown). Chờ 3 giây…");
+      setBanner("Auth failed: unknown face. Retrying in 3s…");
       cooldownUntilRef.current = Date.now() + 3000;
       endScan();
       window.setTimeout(() => setBanner(""), 3000);
@@ -208,7 +208,7 @@ export default function SensorFaceGate() {
         latestAuthRef.current === 10
       ) {
         setBanner(
-          "Không phát hiện khuôn mặt trong 10 giây (auth = 10) — đang tắt camera."
+          "No face detected for 10s — closing camera."
         );
         endScan();
         window.setTimeout(() => setBanner(""), 5000);
@@ -250,7 +250,7 @@ export default function SensorFaceGate() {
       isScanningRef.current = false;
       setLive(false);
       cooldownUntilRef.current = Date.now() + 5000;
-      setBanner("Không thể mở camera (quyền truy cập hoặc thiết bị).");
+      setBanner("Unable to open camera (permission or device).");
     }
   }, [tick]);
 
@@ -282,11 +282,13 @@ export default function SensorFaceGate() {
   }, [beginScan, endScan]);
 
   return (
-    <div className="sensor-gate-card">
+    <div className="sensor-gate-card face-auto-gate-card">
+      <p className="iot-card-label">SMART HOME</p>
+      <h2 className="face-page-title">Face Recognition</h2>
       <div className="sensor-gate-head">
         <div>
-          <p className="sensor-gate-label">CỔNG TỰ ĐỘNG</p>
-          <h3>Nhận diện theo cảm biến</h3>
+          <p className="sensor-gate-label">AUTO GATE</p>
+          <h3>Sensor-triggered recognition</h3>
         </div>
       </div>
 
@@ -300,7 +302,7 @@ export default function SensorFaceGate() {
           </>
         ) : (
           <div className="sensor-placeholder">
-            <p>Camera đang tắt.</p>
+            <p>Camera off.</p>
           </div>
         )}
       </div>

@@ -1,4 +1,4 @@
-﻿@tailwind base;
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -16,7 +16,37 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
   transition: color-scheme 0.3s ease;
+}
+
+/* Scrollbar chỉ khi cần; không làm nhảy layout (gutter đã reserve sẵn) */
+@supports (scrollbar-width: thin) {
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(15, 23, 42, 0.28) transparent;
+  }
+}
+
+html::-webkit-scrollbar {
+  width: 10px;
+}
+
+html::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+html::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.22);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+html::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 42, 0.35);
+  background-clip: padding-box;
 }
 
 body {

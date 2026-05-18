@@ -10,23 +10,23 @@
 }
 
 .face-intro-card {
-  margin-bottom: 24px;
+  margin-bottom: 0;
 }
 
 .face-page-title {
-  margin: 0 0 8px;
+  margin: 0 0 6px;
   color: #0f172a;
-  font-size: 30px;
-  font-weight: 900;
-  letter-spacing: -0.6px;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
 }
 
 .face-tools-heading {
   margin: 4px 0 0;
   color: #0f172a;
-  font-size: 22px;
-  font-weight: 900;
-  letter-spacing: -0.4px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .face-intro-text {
@@ -42,10 +42,47 @@
   margin-top: 0;
 }
 
+.face-right-panel .sensor-gate-card {
+  display: none !important;
+}
+
+.face-auto-gate-card .face-page-title {
+  margin: 0 0 16px;
+}
+
+/* Face main: hai cột cùng chiều cao, mép dưới thẳng nhau */
+.iot-premium-page .face-left-panel,
+.iot-premium-page .face-right-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  align-self: stretch;
+}
+
+.iot-premium-page .face-left-panel .face-auto-gate-card {
+  margin-bottom: 0;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.iot-premium-page .face-auto-gate-card .sensor-video-wrap {
+  flex: 1 1 auto;
+  min-height: 180px;
+  max-width: none;
+  aspect-ratio: auto;
+  height: auto;
+}
+
 .face-right-panel {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--premium-gap, 20px);
+}
+
+.iot-premium-page .face-tools-card {
+  flex-shrink: 0;
 }
 
 .face-result-aside {
@@ -60,11 +97,11 @@
 }
 
 .face-result-header h2 {
-  margin: 8px 0 0;
+  margin: 6px 0 0;
   color: #0f172a;
-  font-size: 26px;
-  font-weight: 900;
-  letter-spacing: -0.5px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .face-result-body {
@@ -73,7 +110,12 @@
   background: rgba(255, 255, 255, 0.42);
   border: 1px solid rgba(255, 255, 255, 0.55);
   padding: 20px;
-  min-height: 200px;
+  min-height: 0;
+}
+
+.iot-premium-page .face-result-body {
+  flex: 1;
+  min-height: 0;
 }
 
 .face-result-placeholder {
@@ -109,8 +151,8 @@
   border-radius: 16px;
   background: rgba(226, 232, 240, 0.85);
   color: #0f172a;
-  font-weight: 900;
-  font-size: 18px;
+  font-weight: 700;
+  font-size: 17px;
 }
 
 .face-error-msg {
@@ -306,14 +348,52 @@
 }
 
 .face-meta-section {
-  margin-top: 24px;
+  margin-top: var(--premium-gap, 20px);
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  align-items: start;
+  gap: var(--premium-gap, 20px);
+  align-items: stretch;
+}
+
+.face-meta-section > .face-glass-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  height: 100%;
+}
+
+.face-meta-section .face-meta-card-title {
+  flex-shrink: 0;
+}
+
+.face-meta-section .face-attendance-table,
+.face-meta-section .face-meta-empty,
+.face-meta-section .face-name-list {
+  flex: 1;
+  min-height: 0;
 }
 
 @media (max-width: 1024px) {
+  .iot-premium-page .face-left-panel .face-auto-gate-card {
+    flex: none;
+    height: auto;
+  }
+
+  .iot-premium-page .face-auto-gate-card .sensor-video-wrap {
+    flex: none;
+    aspect-ratio: 4 / 3;
+    max-width: 640px;
+  }
+
+  .iot-premium-page .face-result-aside {
+    flex: none;
+    height: auto;
+  }
+
+  .iot-premium-page .face-result-body {
+    min-height: 200px;
+  }
+
   .face-meta-section {
     grid-template-columns: 1fr;
   }
@@ -322,8 +402,8 @@
 .face-meta-card-title {
   margin: 0 0 14px;
   color: #0f172a;
-  font-size: 18px;
-  font-weight: 900;
+  font-size: 17px;
+  font-weight: 700;
 }
 
 .face-attendance-table {
@@ -346,14 +426,16 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.6px;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .face-meta-empty {
   margin: 0;
-  color: #64748b;
-  font-weight: 600;
-  font-size: 14px;
+  padding: 20px 12px;
+}
+
+.face-meta-empty.premium-empty-state .premium-empty-hint {
+  max-width: 20rem;
 }
 
 .face-name-list {
@@ -407,19 +489,20 @@
 }
 
 .sensor-gate-label {
-  margin: 0 0 6px;
+  margin: 0 0 4px;
   color: #64748b;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 1.1px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .sensor-gate-head h3 {
-  margin: 6px 0 8px;
+  margin: 4px 0 10px;
   color: #0f172a;
-  font-size: 22px;
-  font-weight: 900;
-  letter-spacing: -0.4px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .sensor-gate-hint {
@@ -528,7 +611,7 @@
   margin: 0 0 16px;
   color: #0f172a;
   font-size: 20px;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .face-camera-dialog .face-camera-video,

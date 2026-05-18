@@ -7,6 +7,7 @@ import {
   deleteFaceByName,
 } from "../services/faceApi";
 import SensorFaceGate from "../components/FaceRecogniotion/SensorFaceGate";
+import PremiumHeaderStatus from "../components/PremiumHeaderStatus";
 import { getIotData } from "../services/iotApi";
 import "./iotpage.css";
 import "./facepage.css";
@@ -57,7 +58,7 @@ export default function FacePage() {
       }, 100);
     } catch (error) {
       console.error(error);
-      alert("Không thể mở camera");
+      alert("Unable to open camera");
     }
   };
 
@@ -146,7 +147,7 @@ export default function FacePage() {
   }, []);
 
   const handleDeleteFace = async (name) => {
-    if (!window.confirm(`Xóa khuôn mặt "${name}"?`)) return;
+    if (!window.confirm(`Delete face "${name}"?`)) return;
     try {
       setIsLoading(true);
       await deleteFaceByName(name);
@@ -154,7 +155,7 @@ export default function FacePage() {
       setKnownNames(Array.isArray(listRes?.names) ? listRes.names : []);
     } catch (e) {
       console.error(e);
-      alert("Xóa thất bại");
+      alert("Delete failed");
     } finally {
       setIsLoading(false);
     }
@@ -172,12 +173,12 @@ export default function FacePage() {
     const name = registerName.trim();
 
     if (!name) {
-      alert("Vui lòng nhập tên người dùng");
+      alert("Please enter a name");
       return;
     }
 
     if (!registerFile) {
-      alert("Vui lòng chọn ảnh hoặc chụp bằng camera");
+      alert("Please choose a photo or capture from camera");
       return;
     }
 
@@ -189,7 +190,7 @@ export default function FacePage() {
       setRegisterResult({
         success: true,
         name: res?.name || name,
-        message: res?.message || "Đăng ký thành công",
+        message: res?.message || "Registered successfully",
         ...res,
       });
 
@@ -200,7 +201,7 @@ export default function FacePage() {
         /* ignore */
       }
 
-      alert("Đăng ký khuôn mặt thành công");
+      alert("Face registered successfully");
     } catch (error) {
       console.error("Register face error:", error);
 
@@ -209,10 +210,10 @@ export default function FacePage() {
         message:
           error?.response?.data?.detail ||
           error?.response?.data?.message ||
-          "Đăng ký thất bại",
+          "Registration failed",
       });
 
-      alert("Đăng ký thất bại");
+      alert("Registration failed");
     } finally {
       setIsLoading(false);
     }
@@ -234,16 +235,16 @@ export default function FacePage() {
         {ok ? (
           <>
             <div className="face-result-status">
-              <span className="face-badge success">Đăng ký thành công</span>
+              <span className="face-badge success">Registered</span>
             </div>
             <div className="face-result-info">
-              <p className="face-result-label">Tên đã đăng ký</p>
+              <p className="face-result-label">Registered name</p>
               <div className="face-highlight">{registerResult.name}</div>
             </div>
           </>
         ) : (
           <div className="face-error-msg">
-            {registerResult?.message || "Không thể đăng ký khuôn mặt."}
+            {registerResult?.message || "Unable to register face."}
           </div>
         )}
       </div>
@@ -270,32 +271,21 @@ export default function FacePage() {
             </div>
           </div>
 
-          <div className="iot-header-right">
-            <div className="iot-status-pill">
-              <span>💧 {iotData.humi}%</span>
-              <span>🌡️ {iotData.temp}°</span>
-            </div>
-            <div className="iot-user-circle">👤</div>
-          </div>
+          <PremiumHeaderStatus humi={iotData.humi} temp={iotData.temp} />
         </header>
 
         <main className="iot-premium-grid">
-          <div className="iot-left-panel">
-            <section className="face-intro-card face-glass-card">
-              <p className="iot-card-label">SMART HOME</p>
-              <h2 className="face-page-title">Nhận diện khuôn mặt</h2>
-            </section>
-
+          <div className="iot-left-panel face-left-panel">
             <SensorFaceGate />
           </div>
 
           <div className="face-right-panel">
             <section className="face-tools-card face-glass-card">
-              <p className="iot-card-label">ĐĂNG KÝ</p>
-              <h2 className="face-tools-heading">Khuôn mặt mới</h2>
+              <p className="iot-card-label">REGISTER</p>
+              <h2 className="face-tools-heading">New Face</h2>
 
               <div className="face-section-head">
-                <h4>Ảnh &amp; tên</h4>
+                <h4>Photo &amp; name</h4>
                 <div className="face-tool-actions">
                   <button
                     type="button"
@@ -329,7 +319,7 @@ export default function FacePage() {
               <input
                 className="face-input-text"
                 type="text"
-                placeholder="Nhập tên người dùng"
+                placeholder="Enter name"
                 value={registerName}
                 onChange={(e) => setRegisterName(e.target.value)}
               />
@@ -350,17 +340,18 @@ export default function FacePage() {
                   />
                 </div>
               )}
+
             </section>
 
             <aside className="face-result-aside face-glass-card">
             <div className="face-result-header">
               <p className="iot-card-label">RESULT</p>
-              <h2>Kết quả đăng ký</h2>
+              <h2>Registration Result</h2>
             </div>
 
             <div className="face-result-body">
               {!registerResult ? (
-                <div className="face-result-placeholder">Chưa có kết quả.</div>
+                <div className="face-result-placeholder">No result yet.</div>
               ) : (
                 renderRegisterResult()
               )}
@@ -371,20 +362,23 @@ export default function FacePage() {
 
         <div
           className="face-meta-section"
-          aria-label="Lịch sử và danh sách khuôn mặt"
+          aria-label="Attendance history and registered faces"
         >
           <section className="face-glass-card">
-            <h3 className="face-meta-card-title">Lịch sử vào nhà</h3>
+            <h3 className="face-meta-card-title">Entry History</h3>
             {recentAttendance.length === 0 ? (
-              <p className="face-meta-empty">
-                Chưa có bản ghi hoặc chưa tải được từ API.
-              </p>
+              <div className="face-meta-empty premium-empty-state">
+                <p className="premium-empty-title">No entries yet</p>
+                <p className="premium-empty-hint">
+                  When someone is recognized at the door, their visit will show up here.
+                </p>
+              </div>
             ) : (
               <table className="face-attendance-table">
                 <thead>
                   <tr>
-                    <th>Tên</th>
-                    <th>Thời gian</th>
+                    <th>Name</th>
+                    <th>Time</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -399,9 +393,9 @@ export default function FacePage() {
             )}
           </section>
           <section className="face-glass-card">
-            <h3 className="face-meta-card-title">Khuôn mặt đã đăng ký</h3>
+            <h3 className="face-meta-card-title">Registered Faces</h3>
             {knownNames.length === 0 ? (
-              <p className="face-meta-empty">Danh sách trống.</p>
+              <p className="face-meta-empty">No faces registered.</p>
             ) : (
               <div className="face-name-list">
                 {knownNames.map((n) => (
@@ -412,7 +406,7 @@ export default function FacePage() {
                       onClick={() => handleDeleteFace(n)}
                       disabled={isLoading}
                     >
-                      Xóa
+                      Delete
                     </button>
                   </span>
                 ))}
@@ -425,7 +419,7 @@ export default function FacePage() {
       {cameraOpen && (
         <div className="face-camera-modal">
           <div className="face-camera-dialog">
-            <h3>Chụp ảnh đăng ký</h3>
+            <h3>Capture Registration Photo</h3>
 
             <video ref={videoRef} autoPlay playsInline muted className="face-camera-video" />
 
@@ -438,7 +432,7 @@ export default function FacePage() {
                 📸 Capture
               </button>
               <button type="button" className="face-btn face-btn-muted" onClick={closeCamera}>
-                Hủy
+                Cancel
               </button>
             </div>
           </div>

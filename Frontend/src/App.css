@@ -43,7 +43,9 @@
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
 }
 
-h2 {
+.webcam-section h2,
+.register-section h2,
+.result-section h2 {
   color: #333;
   margin-bottom: 20px;
   border-bottom: 2px solid #667eea;

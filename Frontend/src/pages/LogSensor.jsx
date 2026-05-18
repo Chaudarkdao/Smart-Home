@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { getIotChartHistory } from "../services/iotApi";
+import PremiumHeaderStatus from "../components/PremiumHeaderStatus";
+import "./iotpage.css";
 import "./logsensor.css";
 
 const toNumber = (value, fallback = 0) => {
@@ -97,14 +99,7 @@ export default function LogSensor() {
             </div>
           </div>
 
-          <div className="log-header-right">
-            <div className="log-status-pill">
-              <span>💧 {latestLog.humi}%</span>
-              <span>🌡️ {latestLog.temp}°</span>
-            </div>
-
-            <div className="log-user-circle">👤</div>
-          </div>
+          <PremiumHeaderStatus humi={latestLog.humi} temp={latestLog.temp} />
         </header>
 
         <main className="log-premium-grid">
@@ -113,9 +108,9 @@ export default function LogSensor() {
               <div>
                 <p className="log-mini-title">SMART HOME</p>
                 <h2>Sensor History</h2>
-                <p>
-                  Dữ liệu log hiển thị trong 3 ngày gần nhất, mỗi điểm cách nhau
-                  5 phút.
+                <p className="premium-muted-copy">
+                  A rolling view of your home — temperature, humidity, and light
+                  from the last few days.
                 </p>
               </div>
 
@@ -126,7 +121,14 @@ export default function LogSensor() {
 
             {sensorLogs.length === 0 ? (
               <div className="log-empty-box">
-                Chưa có dữ liệu log. Kiểm tra API /api/iot/chart-history.
+                <p className="premium-empty-title">
+                  {loading ? "Loading history…" : "No history yet"}
+                </p>
+                <p className="premium-empty-hint">
+                  {loading
+                    ? "Fetching sensor readings from your home."
+                    : "Entries will appear here once your devices start sending data."}
+                </p>
               </div>
             ) : (
               <div className="log-table-wrap">
