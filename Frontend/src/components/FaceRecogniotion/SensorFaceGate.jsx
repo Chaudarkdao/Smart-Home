@@ -4,8 +4,9 @@ import { detectFaces, getFaceStatus } from "../../services/faceApi";
 
 const CAPTURE_MS = 500;
 const IOT_POLL_MS = 400;
-/** 10s × (1000/500) = 20 lần chụp liên tiếp không có mặt (đặc tả bổ sung). */
+/** 10s ÷ 0.5s = 20 lần chụp liên tiếp không có mặt (đặc tả bổ sung). */
 const NO_FACE_STREAK_LIMIT = 20;
+const NO_FACE_WINDOW_MS = NO_FACE_STREAK_LIMIT * CAPTURE_MS;
 
 function videoToJpegFile(video) {
   const w = video.videoWidth || 640;
@@ -33,7 +34,9 @@ function videoToJpegFile(video) {
  * chụp mỗi 0.5s, gọi /api/face/detect, vẽ bbox; >1 người thì thất bại và đóng cam;
  * đúng 1 người: đọc /api/face/status trước frame; nếu current_count === 0 thì xét tên từ detect.
  * Sau thành công chờ 10s / thất bại unknown chờ 3s rồi quay lại đầu vòng (mở lại cam nếu auth vẫn 11).
- * Bổ sung: 20 lần liên tiếp không mặt (10s) + auth = 10 → tắt cam; có mặt thì reset đếm.
+ * Bổ sung (2 yêu cầu PDF):
+ * - Mở cam 10s không thấy mặt → tắt cam (20 lần × 0.5s; có mặt thì reset đếm về 0).
+ * - Khi đủ điều kiện trên: tắt nếu auth = 10 (không chuyển động) hoặc vẫn auth = 11 (hết 10s trong phiên quét).
  * current_count !== 0 → tiếp tục chụp (không kết luận mở cửa).
  */
 export default function SensorFaceGate() {
@@ -46,12 +49,20 @@ export default function SensorFaceGate() {
   const cooldownUntilRef = useRef(0);
   const noFaceStreakRef = useRef(0);
   const latestAuthRef = useRef(10);
+  const prevAuthRef = useRef(10);
   const isScanningRef = useRef(false);
   const inFlightRef = useRef(false);
+
+  const isCameraActive = useCallback(() => {
+    if (isScanningRef.current) return true;
+    const tracks = streamRef.current?.getTracks?.() ?? [];
+    return tracks.some((t) => t.readyState === "live");
+  }, []);
 
   const [live, setLive] = useState(false);
   const [lastDetect, setLastDetect] = useState(null);
   const [banner, setBanner] = useState("");
+  const [iotAuth, setIotAuth] = useState(10);
 
   const endScan = useCallback(() => {
     if (scanTimerRef.current) {
@@ -200,15 +211,23 @@ export default function SensorFaceGate() {
       if (faceCount === 0) {
         noFaceStreakRef.current += 1;
       } else {
+        /* Đặc tả: phát hiện mặt → reset đếm về 0 */
         noFaceStreakRef.current = 0;
       }
 
-      if (
-        noFaceStreakRef.current >= NO_FACE_STREAK_LIMIT &&
-        latestAuthRef.current === 10
-      ) {
+      let authNow = latestAuthRef.current;
+      try {
+        const iot = await getIotData();
+        authNow = Number(iot.auth);
+        latestAuthRef.current = authNow;
+      } catch {
+        /* dùng auth cache */
+      }
+
+      /* Bổ sung PDF: 10s không mặt (20 lần) + auth = 10 → tắt cam */
+      if (noFaceStreakRef.current >= NO_FACE_STREAK_LIMIT && authNow === 10) {
         setBanner(
-          "No face detected for 10s — closing camera."
+          `Không phát hiện khuôn mặt trong ${NO_FACE_WINDOW_MS / 1000}s — tắt camera (auth=${authNow}).`
         );
         endScan();
         window.setTimeout(() => setBanner(""), 5000);
@@ -224,7 +243,24 @@ export default function SensorFaceGate() {
   }, [processAfterDetect, endScan]);
 
   const beginScan = useCallback(async () => {
-    if (isScanningRef.current) return;
+    if (isCameraActive()) return;
+
+    let auth = latestAuthRef.current;
+    try {
+      const data = await getIotData();
+      auth = Number(data?.auth);
+      if (Number.isFinite(auth)) {
+        latestAuthRef.current = auth;
+        setIotAuth(auth);
+      }
+    } catch {
+      /* ignore */
+    }
+
+    if (auth !== 11) {
+      return;
+    }
+
     isScanningRef.current = true;
     noFaceStreakRef.current = 0;
     setBanner("");
@@ -252,19 +288,39 @@ export default function SensorFaceGate() {
       cooldownUntilRef.current = Date.now() + 5000;
       setBanner("Unable to open camera (permission or device).");
     }
-  }, [tick]);
+  }, [tick, isCameraActive]);
+
+  useEffect(() => {
+    endScan();
+  }, [endScan]);
 
   useEffect(() => {
     iotTimerRef.current = window.setInterval(async () => {
       try {
         const data = await getIotData();
-        const auth = Number(data.auth);
+        const auth = Number(data?.auth);
+        if (!Number.isFinite(auth)) return;
+
+        const prevAuth = prevAuthRef.current;
         latestAuthRef.current = auth;
+        prevAuthRef.current = auth;
+        setIotAuth(auth);
         const now = Date.now();
 
-        // PDF: "khi nhận được auth là 11" — mức 11, không chỉ cạnh 10→11.
-        // Sau kết thúc vòng (đóng cam), chỉ mở lại khi hết cooldown (10s / 3s theo đặc tả).
-        if (auth === 11 && !isScanningRef.current && now >= cooldownUntilRef.current) {
+        /* auth khác 11 → tắt stream ngay (kể cả isScanningRef đã false nhưng webcam còn sống). */
+        if (auth !== 11) {
+          if (isCameraActive()) {
+            endScan();
+          }
+          return;
+        }
+
+        /* PDF: nhận auth=11 — ưu tiên cạnh lên 10→11 để tránh tự bật khi auth kẹt 11 từ cloud. */
+        const authRising = prevAuth !== 11 && auth === 11;
+        const mayReopenAfterCooldown =
+          !isCameraActive() && now >= cooldownUntilRef.current;
+
+        if ((authRising || mayReopenAfterCooldown) && auth === 11) {
           beginScan();
         }
       } catch (e) {
@@ -279,7 +335,7 @@ export default function SensorFaceGate() {
       }
       endScan();
     };
-  }, [beginScan, endScan]);
+  }, [beginScan, endScan, isCameraActive]);
 
   return (
     <div className="sensor-gate-card face-auto-gate-card">
@@ -289,6 +345,10 @@ export default function SensorFaceGate() {
         <div>
           <p className="sensor-gate-label">AUTO GATE</p>
           <h3>Sensor-triggered recognition</h3>
+          <p className="sensor-gate-auth-hint">
+            IoT <code>auth</code> = <strong>{iotAuth}</strong> — camera chỉ bật khi{" "}
+            <strong>auth = 11</strong>. Hiện tại auth ≠ 11 → camera phải tắt.
+          </p>
         </div>
       </div>
 

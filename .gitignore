@@ -17,6 +17,9 @@ Backend/face_database.pkl
 Backend/app/services/face_database.pkl
 Backend/uploads/
 Backend/.env
+Backend/database.db
+Backend/database.db-journal
+Backend/models/
 
 # Frontend
 Frontend/node_modules/

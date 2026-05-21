@@ -7,3 +7,5 @@ opencv-python==4.9.0.80
 python-dotenv==1.0.0
 SpeechRecognition==3.10.0
 pydub==0.25.1
+paho-mqtt==1.6.1
+requests==2.31.0

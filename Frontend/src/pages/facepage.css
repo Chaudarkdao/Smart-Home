@@ -518,6 +518,19 @@
   color: #0f172a;
 }
 
+.sensor-gate-auth-hint {
+  margin: 8px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.sensor-gate-auth-hint code {
+  font-family: ui-monospace, monospace;
+  color: #0284c7;
+}
+
 .sensor-auth-val {
   font-family: ui-monospace, monospace;
   color: #0284c7;
