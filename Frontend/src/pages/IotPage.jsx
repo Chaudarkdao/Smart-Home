@@ -36,7 +36,6 @@ const formatLogTime = (value) => {
   if (typeof value === "string") {
     const match = value.match(/(\d{2}:\d{2})(?::\d{2})?/);
     if (match) return match[1];
-
     return value;
   }
 
@@ -69,7 +68,6 @@ function SensorChart({ title, data, dataKey, stroke }) {
       setStartIndex(0);
       return;
     }
-
     setStartIndex(data.length - VISIBLE_POINTS);
   }, [data.length]);
 
@@ -85,7 +83,6 @@ function SensorChart({ title, data, dataKey, stroke }) {
       startX: e.clientX,
       startIndex,
     };
-
     setIsDragging(true);
   };
 
@@ -116,9 +113,7 @@ function SensorChart({ title, data, dataKey, stroke }) {
         onMouseLeave={stopDragging}
         onMouseUp={stopDragging}
         onMouseMove={handleMouseMove}
-        style={{
-          cursor: isDragging ? "grabbing" : "grab",
-        }}
+        style={{ cursor: isDragging ? "grabbing" : "grab" }}
       >
         <ResponsiveContainer width="100%" height={190}>
           <LineChart
@@ -153,10 +148,8 @@ function SensorChart({ title, data, dataKey, stroke }) {
       </div>
 
       <p className="iot-chart-hint">
-  {data.length > VISIBLE_POINTS
-    ? "Kéo trái để xem thêm dữ liệu."
-    : ""}
-</p>
+        {data.length > VISIBLE_POINTS ? "Kéo trái để xem thêm dữ liệu." : ""}
+      </p>
     </div>
   );
 }
@@ -180,7 +173,6 @@ export default function IotPage() {
   const fetchRealtimeData = async () => {
     try {
       const dataRes = await getIotData();
-
       setIotData((prev) => ({
         ...prev,
         ...dataRes,
@@ -234,7 +226,6 @@ export default function IotPage() {
   const handleControl = async (device, value) => {
     try {
       setIsLoading(true);
-
       await controlDevice(device, value);
 
       setIotData((prev) => ({
@@ -304,7 +295,6 @@ export default function IotPage() {
               <span>💧 {iotData.humi}%</span>
               <span>🌡️ {iotData.temp}°</span>
             </div>
-
             <div className="iot-user-circle">👤</div>
           </div>
         </header>
@@ -318,7 +308,6 @@ export default function IotPage() {
                 dataKey="temp"
                 stroke="#f97316"
               />
-
               <SensorChart
                 title="HUMIDITY LOG"
                 data={chartData}
@@ -328,6 +317,7 @@ export default function IotPage() {
             </div>
 
             <div className="iot-device-row">
+              {/* ==================== SMART LAMP (ĐÃ SỬA) ==================== */}
               <div className="iot-device-card">
                 <div className="iot-device-img-wrap">
                   <img src={ledImg} alt="Smart Lamp" />
@@ -358,14 +348,15 @@ export default function IotPage() {
                   </div>
 
                   <div className="mode-labels mode-labels-led">
-  <span>Off</span>
-  <span>Green</span>
-  <span>Red</span>
-  <span>White</span>
-</div>
+                    <span>Off</span>
+                    <span>White</span>
+                    <span>Green</span>
+                    <span>Red</span>
+                  </div>
                 </div>
               </div>
 
+              {/* ==================== SMART FAN ==================== */}
               <div className="iot-device-card">
                 <div className="iot-device-img-wrap">
                   <img
@@ -408,6 +399,7 @@ export default function IotPage() {
                 </div>
               </div>
 
+              {/* ==================== SMART LOCK ==================== */}
               <div className="iot-device-card">
                 <div className="iot-device-img-wrap">
                   <img src={lockImg} alt="Smart Lock" />
@@ -419,19 +411,18 @@ export default function IotPage() {
                 </div>
 
                 <label className={`iot-lock-switch ${doorUnlocked ? "is-on" : ""}`}>
-  <input
-    type="checkbox"
-    checked={doorUnlocked}
-    disabled={isLoading}
-    onChange={(e) =>
-      handleControl("servo", e.target.checked ? 9 : 8)
-    }
-  />
-
-  <span className="iot-lock-track">
-    <span className="iot-lock-thumb" />
-  </span>
-</label>
+                  <input
+                    type="checkbox"
+                    checked={doorUnlocked}
+                    disabled={isLoading}
+                    onChange={(e) =>
+                      handleControl("servo", e.target.checked ? 9 : 8)
+                    }
+                  />
+                  <span className="iot-lock-track">
+                    <span className="iot-lock-thumb" />
+                  </span>
+                </label>
               </div>
             </div>
           </section>
