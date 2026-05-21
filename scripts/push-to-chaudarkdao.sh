@@ -3,7 +3,7 @@
 #
 #   bash scripts/push-to-chaudarkdao.sh
 #   SKIP_COMMIT=1 bash scripts/push-to-chaudarkdao.sh
-#   REMOTE_BRANCH=main bash scripts/push-to-chaudarkdao.sh
+#   REMOTE_BRANCH=Nhn.Ngn bash scripts/push-to-chaudarkdao.sh
 #
 # LAN DAU — neu "Author identity unknown":
 #   git config --global user.name "Ten ban"
@@ -14,7 +14,7 @@ set -euo pipefail
 REPO_URL="${REPO_URL:-https://github.com/Chaudarkdao/Smart-Home.git}"
 REMOTE_NAME="${REMOTE_NAME:-chaudarkdao}"
 LOCAL_BRANCH="${LOCAL_BRANCH:-$(git branch --show-current)}"
-REMOTE_BRANCH="${REMOTE_BRANCH:-$LOCAL_BRANCH}"
+REMOTE_BRANCH="${REMOTE_BRANCH:-Nhn.Ngn}"
 COMMIT_MSG="${COMMIT_MSG:-Update: Smart Home frontend & auto gate}"
 SKIP_COMMIT="${SKIP_COMMIT:-0}"
 

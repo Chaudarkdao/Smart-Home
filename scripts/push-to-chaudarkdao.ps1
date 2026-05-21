@@ -6,8 +6,8 @@
 # Chi push, khong commit:
 #   .\scripts\push-to-chaudarkdao.ps1 -SkipCommit
 #
-# Push branch test_1 len main tren GitHub:
-#   .\scripts\push-to-chaudarkdao.ps1 -RemoteBranch main
+# Push len branch Nhn.Ngn (mac dinh tren GitHub):
+#   .\scripts\push-to-chaudarkdao.ps1 -RemoteBranch Nhn.Ngn
 #
 # LAN DAU — neu chua co git user (loi "Author identity unknown"):
 #   git config --global user.name "Ten ban"
@@ -17,7 +17,7 @@ param(
     [string]$RepoUrl = "https://github.com/Chaudarkdao/Smart-Home.git",
     [string]$RemoteName = "chaudarkdao",
     [string]$LocalBranch = "",
-    [string]$RemoteBranch = "",
+    [string]$RemoteBranch = "Nhn.Ngn",
     [string]$CommitMessage = "Update: Smart Home frontend & auto gate",
     [switch]$SkipCommit
 )
@@ -33,8 +33,8 @@ if (-not $LocalBranch) {
         exit 1
     }
 }
-if (-not $RemoteBranch) {
-    $RemoteBranch = $LocalBranch
+if ($RemoteBranch -eq "" -or $RemoteBranch -eq $null) {
+    $RemoteBranch = "Nhn.Ngn"
 }
 
 Write-Host "=== Push to Chaudarkdao/Smart-Home ===" -ForegroundColor Cyan
@@ -105,6 +105,6 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "Push that bai. Kiem tra:" -ForegroundColor Red
     Write-Host "  - Da dang nhap GitHub? (gh auth login)"
     Write-Host "  - Co quyen push vao Chaudarkdao/Smart-Home?"
-    Write-Host "  - Branch '$RemoteBranch' co ton tai tren remote? Thu -RemoteBranch main"
+    Write-Host "  - Branch '$RemoteBranch' co ton tai tren remote? (mac dinh: Nhn.Ngn)"
     exit 1
 }
