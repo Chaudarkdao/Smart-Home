@@ -62,8 +62,6 @@ export default function SensorFaceGate() {
   const [live, setLive] = useState(false);
   const [lastDetect, setLastDetect] = useState(null);
   const [banner, setBanner] = useState("");
-  const [iotAuth, setIotAuth] = useState(10);
-
   const endScan = useCallback(() => {
     if (scanTimerRef.current) {
       clearInterval(scanTimerRef.current);
@@ -251,7 +249,6 @@ export default function SensorFaceGate() {
       auth = Number(data?.auth);
       if (Number.isFinite(auth)) {
         latestAuthRef.current = auth;
-        setIotAuth(auth);
       }
     } catch {
       /* ignore */
@@ -304,7 +301,6 @@ export default function SensorFaceGate() {
         const prevAuth = prevAuthRef.current;
         latestAuthRef.current = auth;
         prevAuthRef.current = auth;
-        setIotAuth(auth);
         const now = Date.now();
 
         /* auth khác 11 → tắt stream ngay (kể cả isScanningRef đã false nhưng webcam còn sống). */
@@ -345,10 +341,6 @@ export default function SensorFaceGate() {
         <div>
           <p className="sensor-gate-label">AUTO GATE</p>
           <h3>Sensor-triggered recognition</h3>
-          <p className="sensor-gate-auth-hint">
-            IoT <code>auth</code> = <strong>{iotAuth}</strong> — camera chỉ bật khi{" "}
-            <strong>auth = 11</strong>. Hiện tại auth ≠ 11 → camera phải tắt.
-          </p>
         </div>
       </div>
 
