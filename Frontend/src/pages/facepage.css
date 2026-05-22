@@ -42,24 +42,21 @@
   margin-top: 0;
 }
 
-.face-right-panel .sensor-gate-card {
-  display: none !important;
-}
-
 .face-auto-gate-card .face-page-title {
   margin: 0 0 16px;
 }
 
-/* Face main: hai cột cùng chiều cao, mép dưới thẳng nhau */
-.iot-premium-page .face-left-panel,
-.iot-premium-page .face-right-panel {
+/* Recognition page — chỉ AUTO GATE */
+.face-recognition-page .face-recognition-main {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  align-self: stretch;
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
 }
 
-.iot-premium-page .face-left-panel .face-auto-gate-card {
+.face-recognition-page .face-auto-gate-card {
   margin-bottom: 0;
   flex: 1;
   min-height: 0;
@@ -67,7 +64,7 @@
   flex-direction: column;
 }
 
-.iot-premium-page .face-auto-gate-card .sensor-video-wrap {
+.face-recognition-page .face-auto-gate-card .sensor-video-wrap {
   flex: 1 1 auto;
   min-height: 180px;
   max-width: none;
@@ -75,10 +72,12 @@
   height: auto;
 }
 
-.face-right-panel {
-  display: flex;
-  flex-direction: column;
+/* Register page — form + kết quả */
+.face-register-main {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: var(--premium-gap, 20px);
+  align-items: stretch;
 }
 
 .iot-premium-page .face-tools-card {
@@ -374,23 +373,27 @@
 }
 
 @media (max-width: 1024px) {
-  .iot-premium-page .face-left-panel .face-auto-gate-card {
+  .face-recognition-page .face-auto-gate-card {
     flex: none;
     height: auto;
   }
 
-  .iot-premium-page .face-auto-gate-card .sensor-video-wrap {
+  .face-recognition-page .face-auto-gate-card .sensor-video-wrap {
     flex: none;
     aspect-ratio: 4 / 3;
     max-width: 640px;
   }
 
-  .iot-premium-page .face-result-aside {
+  .face-register-main {
+    grid-template-columns: 1fr;
+  }
+
+  .face-register-page .face-result-aside {
     flex: none;
     height: auto;
   }
 
-  .iot-premium-page .face-result-body {
+  .face-register-page .face-result-body {
     min-height: 200px;
   }
 
@@ -570,6 +573,11 @@
   vertical-align: middle;
 }
 
+.sensor-last-frame {
+  position: absolute;
+  inset: 0;
+}
+
 .sensor-overlay-canvas {
   position: absolute;
   left: 0;
@@ -577,6 +585,7 @@
   width: 100%;
   height: 100%;
   pointer-events: none;
+  z-index: 2;
 }
 
 .sensor-placeholder {

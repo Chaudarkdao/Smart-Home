@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import AppNav from "../components/Common/AppNav";
 import { getIotChartHistory } from "../services/iotApi";
 import PremiumHeaderStatus from "../components/PremiumHeaderStatus";
 import "./iotpage.css";
@@ -84,19 +84,7 @@ export default function LogSensor() {
             <p className="log-hi-text">Hi Khang,</p>
             <h1>Welcome to your home</h1>
 
-            <div className="log-top-actions">
-              <Link to="/iot" className="log-nav-pill">
-                📡 IoT
-              </Link>
-
-              <Link to="/logsensor" className="log-nav-pill active">
-                📊 Log Sensor
-              </Link>
-
-              <Link to="/face" className="log-nav-pill">
-                👤 Face
-              </Link>
-            </div>
+            <AppNav active="logsensor" />
           </div>
 
           <PremiumHeaderStatus humi={latestLog.humi} temp={latestLog.temp} />

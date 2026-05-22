@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import AppNav from "../components/Common/AppNav";
 import {
   LineChart,
   Line,
@@ -364,17 +364,7 @@ export default function IotPage() {
             <p className="iot-hi-text">Hi Khang,</p>
             <h1>Welcome to your home</h1>
 
-            <div className="iot-top-actions">
-              <Link to="/iot" className="iot-nav-pill active">
-                📡 IoT
-              </Link>
-              <Link to="/logsensor" className="iot-nav-pill">
-                📊 Log Sensor
-              </Link>
-              <Link to="/face" className="iot-nav-pill">
-                👤 Face
-              </Link>
-            </div>
+            <AppNav active="iot" />
           </div>
 
           <PremiumHeaderStatus humi={iotData.humi} temp={iotData.temp} />

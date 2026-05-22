@@ -8,6 +8,92 @@ const IOT_POLL_MS = 400;
 const NO_FACE_STREAK_LIMIT = 20;
 const NO_FACE_WINDOW_MS = NO_FACE_STREAK_LIMIT * CAPTURE_MS;
 
+/** Chuyển bbox (pixel gốc của frame) sang vùng hiển thị khi video dùng object-fit: cover. */
+function mapBboxToDisplay(bbox, videoW, videoH, displayW, displayH) {
+  if (!bbox || bbox.length < 4 || !videoW || !videoH) return null;
+  const [x1, y1, x2, y2] = bbox.map(Number);
+  const videoAR = videoW / videoH;
+  const displayAR = displayW / displayH;
+  let scale;
+  let offsetX = 0;
+  let offsetY = 0;
+  if (videoAR > displayAR) {
+    scale = displayH / videoH;
+    offsetX = (displayW - videoW * scale) / 2;
+  } else {
+    scale = displayW / videoW;
+    offsetY = (displayH - videoH * scale) / 2;
+  }
+  return {
+    x: x1 * scale + offsetX,
+    y: y1 * scale + offsetY,
+    w: Math.max(2, (x2 - x1) * scale),
+    h: Math.max(2, (y2 - y1) * scale),
+  };
+}
+
+function drawFaceBox(ctx, rect, face, index) {
+  const recognized =
+    face.recognized_name && face.recognized_name !== "unknown"
+      ? face.recognized_name
+      : null;
+  const sim =
+    face.similarity != null && !Number.isNaN(Number(face.similarity))
+      ? Number(face.similarity)
+      : null;
+  const strokeColor = recognized ? "#22c55e" : "#f97316";
+  const label = recognized || "Unknown";
+  const simPart = sim != null ? ` ${(sim * 100).toFixed(0)}%` : "";
+  const text = `${label}${simPart}`;
+
+  const { x, y, w, h } = rect;
+
+  ctx.save();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = strokeColor;
+  ctx.shadowColor = "rgba(0,0,0,0.45)";
+  ctx.shadowBlur = 4;
+  ctx.strokeRect(x, y, w, h);
+
+  ctx.font = "bold 14px system-ui, sans-serif";
+  const tw = ctx.measureText(text).width;
+  const padX = 8;
+  const labelH = 22;
+  const labelY = y > labelH + 4 ? y - labelH - 2 : y + 2;
+
+  ctx.fillStyle = strokeColor;
+  ctx.fillRect(x, labelY, tw + padX * 2, labelH);
+  ctx.fillStyle = "#0f172a";
+  ctx.fillText(text, x + padX, labelY + 16);
+  ctx.restore();
+}
+
+/** Vẽ video khớp object-fit: cover lên canvas hiển thị. */
+function drawVideoCover(ctx, video, dw, dh) {
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  if (!vw || !vh) return;
+  const videoAR = vw / vh;
+  const displayAR = dw / dh;
+  let sx;
+  let sy;
+  let sw;
+  let sh;
+  if (videoAR > displayAR) {
+    sh = vh;
+    sw = vh * displayAR;
+    sx = (vw - sw) / 2;
+    sy = 0;
+  } else {
+    sw = vw;
+    sh = vw / displayAR;
+    sx = 0;
+    sy = (vh - sh) / 2;
+  }
+  ctx.drawImage(video, sx, sy, sw, sh, 0, 0, dw, dh);
+}
+
+/** Ảnh JPEG gửi API. */
 function videoToJpegFile(video) {
   const w = video.videoWidth || 640;
   const h = video.videoHeight || 480;
@@ -29,16 +115,44 @@ function videoToJpegFile(video) {
   });
 }
 
+/** Chụp khung hiển thị + bbox → blob URL (ảnh cuối phiên nhận diện). */
+function captureDisplaySnapshot(video, faces) {
+  const dw = video.clientWidth || 640;
+  const dh = video.clientHeight || 480;
+  const nw = video.videoWidth;
+  const nh = video.videoHeight;
+  if (!nw || !nh) return Promise.resolve(null);
+
+  const c = document.createElement("canvas");
+  c.width = dw;
+  c.height = dh;
+  const ctx = c.getContext("2d");
+  if (!ctx) return Promise.resolve(null);
+
+  drawVideoCover(ctx, video, dw, dh);
+  (faces || []).forEach((face, index) => {
+    const rect = mapBboxToDisplay(face.bbox, nw, nh, dw, dh);
+    if (rect) drawFaceBox(ctx, rect, face, index);
+  });
+
+  return new Promise((resolve) => {
+    c.toBlob(
+      (blob) => {
+        if (!blob) resolve(null);
+        else resolve(URL.createObjectURL(blob));
+      },
+      "image/jpeg",
+      0.9
+    );
+  });
+}
+
 /**
- * Luồng đặc tả: khi IoT auth === 11 (cảm biến / Yolobit báo chuyển động), tự mở camera,
- * chụp mỗi 0.5s, gọi /api/face/detect, vẽ bbox; >1 người thì thất bại và đóng cam;
- * đúng 1 người: đọc /api/face/status trước frame; nếu current_count === 0 thì xét tên từ detect.
- * Sau thành công chờ 10s / thất bại unknown chờ 3s rồi quay lại đầu vòng (mở lại cam nếu auth vẫn 11).
- * Bổ sung (2 yêu cầu PDF):
- * - Mở cam 10s không thấy mặt → tắt cam (20 lần × 0.5s; có mặt thì reset đếm về 0).
- * - Khi đủ điều kiện trên: tắt nếu auth = 10 (không chuyển động) hoặc vẫn auth = 11 (hết 10s trong phiên quét).
- * current_count !== 0 → tiếp tục chụp (không kết luận mở cửa).
+ * AUTO GATE: auth=11 mở cam; auth=12 giữ cam (backend face_service đang xác minh).
+ * Mỗi 0.5s gọi /api/face/detect — logic đếm 3 lần + auth 12/13/14 nằm trong face_service (main).
+ * Frontend chỉ hiển thị bbox/banner; kết luận theo auth 13 (OK) / 14 (fail) từ IoT.
  */
+const SCAN_AUTH_VALUES = new Set([11, 12]);
 export default function SensorFaceGate() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -52,6 +166,7 @@ export default function SensorFaceGate() {
   const prevAuthRef = useRef(10);
   const isScanningRef = useRef(false);
   const inFlightRef = useRef(false);
+  const lastFrameUrlRef = useRef(null);
 
   const isCameraActive = useCallback(() => {
     if (isScanningRef.current) return true;
@@ -61,8 +176,30 @@ export default function SensorFaceGate() {
 
   const [live, setLive] = useState(false);
   const [lastDetect, setLastDetect] = useState(null);
+  const [lastFrameUrl, setLastFrameUrl] = useState(null);
   const [banner, setBanner] = useState("");
-  const endScan = useCallback(() => {
+
+  const setSnapshotFromVideo = useCallback(async (video, faces) => {
+    if (!video?.videoWidth) return;
+    const url = await captureDisplaySnapshot(video, faces);
+    if (!url) return;
+    if (lastFrameUrlRef.current) {
+      URL.revokeObjectURL(lastFrameUrlRef.current);
+    }
+    lastFrameUrlRef.current = url;
+    setLastFrameUrl(url);
+  }, []);
+
+  const endScan = useCallback(async (facesForSnapshot) => {
+    const video = videoRef.current;
+    const faces = facesForSnapshot ?? lastDetect?.faces;
+
+    if (video?.videoWidth && faces?.length) {
+      await setSnapshotFromVideo(video, faces);
+    } else if (video?.videoWidth) {
+      await setSnapshotFromVideo(video, []);
+    }
+
     if (scanTimerRef.current) {
       clearInterval(scanTimerRef.current);
       scanTimerRef.current = null;
@@ -78,24 +215,12 @@ export default function SensorFaceGate() {
     noFaceStreakRef.current = 0;
     setLive(false);
     setLastDetect(null);
-  }, []);
+  }, [lastDetect, setSnapshotFromVideo]);
 
   const drawOverlay = useCallback(() => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    if (!video || !canvas || !lastDetect?.faces?.length) {
-      if (canvas) {
-        const ctx = canvas.getContext("2d");
-        if (ctx && video) {
-          const rw = video.clientWidth || 640;
-          const rh = video.clientHeight || 480;
-          canvas.width = rw;
-          canvas.height = rh;
-          ctx.clearRect(0, 0, rw, rh);
-        }
-      }
-      return;
-    }
+    if (!video || !canvas) return;
 
     const rw = video.clientWidth || 640;
     const rh = video.clientHeight || 480;
@@ -104,38 +229,18 @@ export default function SensorFaceGate() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const nw = video.videoWidth || rw;
-    const nh = video.videoHeight || rh;
-    const sx = rw / nw;
-    const sy = rh / nh;
-
     ctx.clearRect(0, 0, rw, rh);
-    lastDetect.faces.forEach((face, index) => {
-      if (!face.bbox || face.bbox.length < 4) return;
-      const [x1, y1, x2, y2] = face.bbox;
-      const bx = x1 * sx;
-      const by = y1 * sy;
-      const bw = (x2 - x1) * sx;
-      const bh = (y2 - y1) * sy;
-      const recognized =
-        face.recognized_name && face.recognized_name !== "unknown"
-          ? face.recognized_name
-          : null;
-      const label = recognized || `Face ${index + 1}`;
-      const conf = Number(face.confidence || 0).toFixed(2);
-      const text = `${label} (${conf})`;
-      const strokeColor = recognized ? "#22c55e" : "#38bdf8";
 
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = strokeColor;
-      ctx.strokeRect(bx, by, bw, bh);
-      ctx.font = "bold 13px system-ui,sans-serif";
-      const tw = ctx.measureText(text).width;
-      const ly = by > 22 ? by - 22 : by + 4;
-      ctx.fillStyle = strokeColor;
-      ctx.fillRect(bx, ly, tw + 12, 20);
-      ctx.fillStyle = "#0f172a";
-      ctx.fillText(text, bx + 6, ly + 15);
+    const faces = lastDetect?.faces;
+    if (!faces?.length || !video.videoWidth) return;
+
+    const nw = video.videoWidth;
+    const nh = video.videoHeight;
+
+    faces.forEach((face, index) => {
+      const rect = mapBboxToDisplay(face.bbox, nw, nh, rw, rh);
+      if (!rect) return;
+      drawFaceBox(ctx, rect, face, index);
     });
   }, [lastDetect]);
 
@@ -152,37 +257,45 @@ export default function SensorFaceGate() {
     return () => ro.disconnect();
   }, [live, drawOverlay]);
 
-  const processAfterDetect = useCallback(
-    async (res, ccBefore) => {
-      const count = Number(res?.count ?? 0);
-      if (count > 1) {
-        setBanner("Verification failed: multiple people detected. Closing camera.");
-        cooldownUntilRef.current = Date.now() + 3000;
-        endScan();
-        window.setTimeout(() => setBanner(""), 5000);
-        return;
-      }
-      if (count !== 1) return;
-
-      // PDF: current_count khác 0 → vẫn tiếp tục chụp, không xác nhận mở cửa.
-      if (ccBefore !== 0) return;
-
-      const name = res.faces?.[0]?.recognized_name;
-      if (name && name !== "unknown") {
-        setBanner(`Verified: ${name}. Door unlocked — resuming in 10s.`);
-        cooldownUntilRef.current = Date.now() + 10000;
-        endScan();
-        window.setTimeout(() => setBanner(""), 10000);
-        return;
-      }
-
-      setBanner("Auth failed: unknown face. Retrying in 3s…");
+  const processAfterDetect = useCallback(async (res) => {
+    const count = Number(res?.count ?? 0);
+    if (count > 1) {
+      setBanner("Verification failed: multiple people detected.");
       cooldownUntilRef.current = Date.now() + 3000;
-      endScan();
-      window.setTimeout(() => setBanner(""), 3000);
-    },
-    [endScan]
-  );
+      endScan(res?.faces);
+      window.setTimeout(() => setBanner(""), 5000);
+      return;
+    }
+    if (count !== 1) return;
+
+    let cc = 0;
+    let person = null;
+    try {
+      const st = await getFaceStatus();
+      cc = Number(st?.data?.current_count ?? 0);
+      person = st?.data?.current_person ?? null;
+    } catch {
+      /* ignore */
+    }
+
+    const detectedName = res.faces?.[0]?.recognized_name;
+    const label =
+      person && person !== "unknown"
+        ? person
+        : detectedName && detectedName !== "unknown"
+        ? detectedName
+        : "face";
+
+    if (cc === 0) {
+      setBanner(
+        detectedName && detectedName !== "unknown"
+          ? `Detected ${detectedName}. Verifying…`
+          : "Starting face verification…"
+      );
+    } else {
+      setBanner(`Verifying ${label} (${cc}/3)…`);
+    }
+  }, [endScan]);
 
   const tick = useCallback(async () => {
     const video = videoRef.current;
@@ -191,19 +304,13 @@ export default function SensorFaceGate() {
 
     inFlightRef.current = true;
     try {
-      let ccBefore = 0;
-      try {
-        const st = await getFaceStatus();
-        ccBefore = Number(st?.data?.current_count ?? 0);
-      } catch {
-        ccBefore = 0;
-      }
-
       const file = await videoToJpegFile(video);
       if (!file) return;
 
       const res = await detectFaces(file);
       setLastDetect(res);
+      requestAnimationFrame(() => drawOverlay());
+      await setSnapshotFromVideo(video, res?.faces);
 
       const faceCount = Number(res?.count ?? 0);
       if (faceCount === 0) {
@@ -227,18 +334,18 @@ export default function SensorFaceGate() {
         setBanner(
           `Không phát hiện khuôn mặt trong ${NO_FACE_WINDOW_MS / 1000}s — tắt camera (auth=${authNow}).`
         );
-        endScan();
+        endScan(res?.faces);
         window.setTimeout(() => setBanner(""), 5000);
         return;
       }
 
-      await processAfterDetect(res, ccBefore);
+      await processAfterDetect(res);
     } catch (e) {
       console.error("[SensorFaceGate] tick", e);
     } finally {
       inFlightRef.current = false;
     }
-  }, [processAfterDetect, endScan]);
+  }, [processAfterDetect, endScan, drawOverlay, setSnapshotFromVideo]);
 
   const beginScan = useCallback(async () => {
     if (isCameraActive()) return;
@@ -262,6 +369,11 @@ export default function SensorFaceGate() {
     noFaceStreakRef.current = 0;
     setBanner("");
     setLastDetect(null);
+    if (lastFrameUrlRef.current) {
+      URL.revokeObjectURL(lastFrameUrlRef.current);
+      lastFrameUrlRef.current = null;
+    }
+    setLastFrameUrl(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" },
@@ -289,6 +401,12 @@ export default function SensorFaceGate() {
 
   useEffect(() => {
     endScan();
+    return () => {
+      if (lastFrameUrlRef.current) {
+        URL.revokeObjectURL(lastFrameUrlRef.current);
+        lastFrameUrlRef.current = null;
+      }
+    };
   }, [endScan]);
 
   useEffect(() => {
@@ -303,15 +421,23 @@ export default function SensorFaceGate() {
         prevAuthRef.current = auth;
         const now = Date.now();
 
-        /* auth khác 11 → tắt stream ngay (kể cả isScanningRef đã false nhưng webcam còn sống). */
-        if (auth !== 11) {
+        /* auth 11/12: giữ cam; 13/14/10: dừng (face_service đã gửi auth qua MQTT). */
+        if (!SCAN_AUTH_VALUES.has(auth)) {
           if (isCameraActive()) {
+            if (auth === 13) {
+              setBanner("Authentication successful. Door unlocked.");
+              cooldownUntilRef.current = Date.now() + 10000;
+              window.setTimeout(() => setBanner(""), 10000);
+            } else if (auth === 14) {
+              setBanner("Authentication failed.");
+              cooldownUntilRef.current = Date.now() + 3000;
+              window.setTimeout(() => setBanner(""), 3000);
+            }
             endScan();
           }
           return;
         }
 
-        /* PDF: nhận auth=11 — ưu tiên cạnh lên 10→11 để tránh tự bật khi auth kẹt 11 từ cloud. */
         const authRising = prevAuth !== 11 && auth === 11;
         const mayReopenAfterCooldown =
           !isCameraActive() && now >= cooldownUntilRef.current;
@@ -352,6 +478,12 @@ export default function SensorFaceGate() {
             <video ref={videoRef} className="sensor-video" autoPlay playsInline muted />
             <canvas ref={canvasRef} className="sensor-overlay-canvas" />
           </>
+        ) : lastFrameUrl ? (
+          <img
+            src={lastFrameUrl}
+            alt="Last recognition frame"
+            className="sensor-video sensor-last-frame"
+          />
         ) : (
           <div className="sensor-placeholder">
             <p>Camera off.</p>
