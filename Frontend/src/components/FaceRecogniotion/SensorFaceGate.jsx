@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import { getIotData } from "../../services/iotApi";
 import { detectFaces, getFaceStatus } from "../../services/faceApi";
 
+/** Đặc tả: auth=11 → cam chụp liên tục 0.5s/lần, mỗi lần gọi /api/face/detect */
 const CAPTURE_MS = 500;
 const IOT_POLL_MS = 400;
 /** 10s ÷ 0.5s = 20 lần chụp liên tiếp không có mặt (đặc tả bổ sung). */
@@ -158,6 +159,8 @@ export default function SensorFaceGate() {
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const scanTimerRef = useRef(null);
+  /** Thời điểm bắt đầu lần chụp tiếp theo (giữ nhịp 0.5s theo đặc tả). */
+  const scanNextAtRef = useRef(0);
   const iotTimerRef = useRef(null);
   /** Chỉ bắt đầu (lại) quét sau thời điểm này — khớp PDF: chờ 10s / 3s trước khi về dòng đầu. */
   const cooldownUntilRef = useRef(0);
@@ -165,7 +168,6 @@ export default function SensorFaceGate() {
   const latestAuthRef = useRef(10);
   const prevAuthRef = useRef(10);
   const isScanningRef = useRef(false);
-  const inFlightRef = useRef(false);
   const lastFrameUrlRef = useRef(null);
 
   const isCameraActive = useCallback(() => {
@@ -201,9 +203,10 @@ export default function SensorFaceGate() {
     }
 
     if (scanTimerRef.current) {
-      clearInterval(scanTimerRef.current);
+      clearTimeout(scanTimerRef.current);
       scanTimerRef.current = null;
     }
+    scanNextAtRef.current = 0;
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
@@ -299,10 +302,9 @@ export default function SensorFaceGate() {
 
   const tick = useCallback(async () => {
     const video = videoRef.current;
-    if (!video || !isScanningRef.current || inFlightRef.current) return;
+    if (!video || !isScanningRef.current) return;
     if (!video.videoWidth) return;
 
-    inFlightRef.current = true;
     try {
       const file = await videoToJpegFile(video);
       if (!file) return;
@@ -342,10 +344,33 @@ export default function SensorFaceGate() {
       await processAfterDetect(res);
     } catch (e) {
       console.error("[SensorFaceGate] tick", e);
-    } finally {
-      inFlightRef.current = false;
     }
   }, [processAfterDetect, endScan, drawOverlay, setSnapshotFromVideo]);
+
+  /** Lên lịch chụp + /detect đúng 0.5s giữa các lần bắt đầu (đặc tả). */
+  const scheduleScanLoop = useCallback(() => {
+    if (scanTimerRef.current) {
+      clearTimeout(scanTimerRef.current);
+      scanTimerRef.current = null;
+    }
+
+    const loop = () => {
+      if (!isScanningRef.current) return;
+      const delay = Math.max(0, scanNextAtRef.current - Date.now());
+      scanTimerRef.current = window.setTimeout(async () => {
+        if (!isScanningRef.current) return;
+        if (!scanNextAtRef.current) {
+          scanNextAtRef.current = Date.now();
+        }
+        scanNextAtRef.current += CAPTURE_MS;
+        await tick();
+        loop();
+      }, delay);
+    };
+
+    scanNextAtRef.current = Date.now();
+    loop();
+  }, [tick]);
 
   const beginScan = useCallback(async () => {
     if (isCameraActive()) return;
@@ -385,11 +410,8 @@ export default function SensorFaceGate() {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
+        scheduleScanLoop();
       }, 50);
-
-      scanTimerRef.current = window.setInterval(() => {
-        tick();
-      }, CAPTURE_MS);
     } catch (e) {
       console.error(e);
       isScanningRef.current = false;
@@ -397,7 +419,7 @@ export default function SensorFaceGate() {
       cooldownUntilRef.current = Date.now() + 5000;
       setBanner("Unable to open camera (permission or device).");
     }
-  }, [tick, isCameraActive]);
+  }, [scheduleScanLoop, isCameraActive]);
 
   useEffect(() => {
     endScan();
@@ -467,6 +489,11 @@ export default function SensorFaceGate() {
         <div>
           <p className="sensor-gate-label">AUTO GATE</p>
           <h3>Sensor-triggered recognition</h3>
+          {live && (
+            <p className="sensor-scan-rate" title="Theo đặc tả: 0.5 giây mỗi lần chụp">
+              Nhận diện liên tục — {CAPTURE_MS / 1000}s/lần
+            </p>
+          )}
         </div>
       </div>
 

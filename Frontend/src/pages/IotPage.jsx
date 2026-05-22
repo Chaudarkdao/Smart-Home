@@ -1,12 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import AppNav from "../components/Common/AppNav";
 import {
   LineChart,
   Line,
-  BarChart,
-  Bar,
-  Cell,
   ResponsiveContainer,
+  CartesianGrid,
   Tooltip,
   XAxis,
   YAxis,
@@ -25,17 +23,7 @@ import weatherImg from "../assets/toppng.com-real-sun-and-clouds-5000x3232.png";
 import PremiumHeaderStatus from "../components/PremiumHeaderStatus";
 import "./iotpage.css";
 
-const AXIS_COLOR = "#0f172a";
-const TEMP_LINE_COLOR = "#dc2626";
-const CHART_X_LABEL_TICKS = [0.5, 6.5, 12.5, 18.5, 23.5];
-const TEMP_Y_DOMAIN = [0, 50];
-const TEMP_Y_TICKS = [0, 10, 20, 30, 40, 50];
-
-const AXIS_TICK = {
-  fontSize: 11,
-  fill: AXIS_COLOR,
-  fontWeight: 700,
-};
+const VISIBLE_POINTS = 5;
 
 const toNumber = (value, fallback = 0) => {
   if (value === undefined || value === null || value === "") return fallback;
@@ -56,47 +44,6 @@ const formatLogTime = (value) => {
   return String(value);
 };
 
-const padHour = (hour) => String(hour).padStart(2, "0");
-
-const formatDayAxisLabel = (position) => {
-  if (position === 0.5) return "00:00";
-  if (position === 6.5) return "06:00";
-  if (position === 12.5) return "12:00";
-  if (position === 18.5) return "18:00";
-  if (position === 23.5) return "23:00";
-  return "";
-};
-
-function DayAxisTick({ x, y, payload }) {
-  const position = Number(payload?.value);
-  const label = formatDayAxisLabel(position);
-  if (!label) return null;
-
-  return (
-    <text
-      x={x}
-      y={y + 14}
-      fill={AXIS_COLOR}
-      fontSize={11}
-      fontWeight={700}
-      textAnchor="middle"
-    >
-      {label}
-    </text>
-  );
-}
-
-const humidityBarColor = (value) => {
-  const v = Math.min(100, Math.max(0, Number(value) || 0));
-  const cold = { r: 56, g: 189, b: 248 };
-  const hot = { r: 239, g: 68, b: 68 };
-  const t = v / 100;
-  const r = Math.round(cold.r + (hot.r - cold.r) * t);
-  const g = Math.round(cold.g + (hot.g - cold.g) * t);
-  const b = Math.round(cold.b + (hot.b - cold.b) * t);
-  return `rgb(${r}, ${g}, ${b})`;
-};
-
 const normalizeChartHistory = (historyRes) => {
   if (!historyRes?.chart || !Array.isArray(historyRes.chart)) return [];
 
@@ -108,130 +55,104 @@ const normalizeChartHistory = (historyRes) => {
   }));
 };
 
-const buildDayChartData = (rows, dataKey) => {
-  const slots = Array.from({ length: 24 }, (_, hour) => ({
-    hour,
-    time: `${padHour(hour)}:00`,
-    [dataKey]: 0,
-  }));
+/** Biểu đồ log temp/humi từ main — kéo ngang xem thêm điểm. */
+function SensorChart({ title, data, dataKey, stroke }) {
+  const [startIndex, setStartIndex] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
 
-  rows.forEach((row) => {
-    const match = String(row.time || "").match(/^(\d{2}):/);
-    if (!match) return;
-    const hour = Number(match[1]);
-    if (hour < 0 || hour > 23) return;
-    slots[hour][dataKey] = toNumber(row[dataKey]);
+  const dragState = useRef({
+    isDown: false,
+    startX: 0,
+    startIndex: 0,
   });
 
-  return slots;
-};
-
-const chartMargins = { top: 14, right: 22, left: 2, bottom: 2 };
-
-const AXIS_LINE_STYLE = {
-  stroke: AXIS_COLOR,
-  strokeWidth: 1.8,
-};
-
-function SensorChart({ title, data, dataKey, variant = "line" }) {
-  const chartRows = useMemo(
-    () => buildDayChartData(data, dataKey),
-    [data, dataKey]
-  );
-
-  const yDomain = useMemo(() => {
-    const values = chartRows
-      .map((row) => Number(row[dataKey]))
-      .filter((v) => !Number.isNaN(v));
-
-    if (variant === "bar") {
-      return [0, 100];
+  useEffect(() => {
+    if (data.length <= VISIBLE_POINTS) {
+      setStartIndex(0);
+      return;
     }
+    setStartIndex(data.length - VISIBLE_POINTS);
+  }, [data.length]);
 
-    return TEMP_Y_DOMAIN;
-  }, [variant]);
+  const maxStartIndex = Math.max(0, data.length - VISIBLE_POINTS);
 
-  const tooltipLabel = (item) => {
-    if (item?.time == null) return "";
-    return `${item.time} – ${padHour(item.hour)}:59`;
+  const visibleData = useMemo(() => {
+    return data.slice(startIndex, startIndex + VISIBLE_POINTS);
+  }, [data, startIndex]);
+
+  const handleMouseDown = (e) => {
+    dragState.current = {
+      isDown: true,
+      startX: e.clientX,
+      startIndex,
+    };
+    setIsDragging(true);
   };
 
-  const sharedAxes = (
-    <>
-      <XAxis
-        type="number"
-        dataKey="hour"
-        domain={[0, 23]}
-        allowDecimals={false}
-        ticks={CHART_X_LABEL_TICKS}
-        tick={DayAxisTick}
-        axisLine={AXIS_LINE_STYLE}
-        tickLine={false}
-        height={34}
-        tickMargin={6}
-      />
-      <YAxis
-        width={42}
-        domain={yDomain}
-        ticks={variant === "line" ? TEMP_Y_TICKS : undefined}
-        tick={AXIS_TICK}
-        axisLine={AXIS_LINE_STYLE}
-        tickLine={false}
-        tickMargin={6}
-        tickCount={variant === "bar" ? 5 : undefined}
-        allowDecimals={variant === "bar"}
-      />
-      <Tooltip
-        labelFormatter={(_, payload) => tooltipLabel(payload?.[0]?.payload)}
-        formatter={(value) => {
-          const unit = dataKey === "temp" ? "°C" : "%";
-          const name = dataKey === "temp" ? "Temperature" : "Humidity";
-          return [`${value}${unit}`, name];
-        }}
-      />
-    </>
-  );
+  const stopDragging = () => {
+    dragState.current.isDown = false;
+    setIsDragging(false);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!dragState.current.isDown) return;
+
+    const diff = e.clientX - dragState.current.startX;
+    const step = Math.round(diff / 45);
+
+    let nextIndex = dragState.current.startIndex - step;
+    nextIndex = Math.max(0, Math.min(nextIndex, maxStartIndex));
+
+    setStartIndex(nextIndex);
+  };
 
   return (
     <div className="iot-chart-card">
       <h3 className="iot-card-label">{title}</h3>
 
-      <div className="iot-chart-area">
-        <ResponsiveContainer width="100%" height="100%">
-          {variant === "bar" ? (
-            <BarChart data={chartRows} margin={chartMargins} barCategoryGap="18%">
-              {sharedAxes}
-              <Bar
-                dataKey={dataKey}
-                radius={[6, 6, 0, 0]}
-                maxBarSize={14}
-                isAnimationActive={false}
-              >
-                {chartRows.map((row) => (
-                  <Cell
-                    key={`bar-${row.hour}`}
-                    fill={humidityBarColor(row[dataKey])}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          ) : (
-            <LineChart data={chartRows} margin={chartMargins}>
-              {sharedAxes}
-              <Line
-                type="monotone"
-                dataKey={dataKey}
-                stroke={TEMP_LINE_COLOR}
-                strokeWidth={3}
-                dot={{ r: 4, fill: TEMP_LINE_COLOR, stroke: "#fff", strokeWidth: 1.5 }}
-                activeDot={{ r: 6, fill: TEMP_LINE_COLOR, stroke: "#fff", strokeWidth: 2 }}
-                isAnimationActive={false}
-                connectNulls
-              />
-            </LineChart>
-          )}
+      <div
+        className="iot-chart-drag-area"
+        onMouseDown={handleMouseDown}
+        onMouseLeave={stopDragging}
+        onMouseUp={stopDragging}
+        onMouseMove={handleMouseMove}
+        style={{ cursor: isDragging ? "grabbing" : "grab" }}
+      >
+        <ResponsiveContainer width="100%" height={190}>
+          <LineChart
+            data={visibleData}
+            margin={{ top: 12, right: 20, left: 0, bottom: 8 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+            <XAxis dataKey="time" interval={0} tick={{ fontSize: 11 }} />
+            <YAxis width={40} tick={{ fontSize: 11 }} domain={["auto", "auto"]} />
+
+            <Tooltip
+              labelFormatter={(label) => `Thời gian: ${label}`}
+              formatter={(value, name) => {
+                const label = name === "temp" ? "Nhiệt độ" : "Độ ẩm";
+                const unit = name === "temp" ? "°C" : "%";
+                return [`${value}${unit}`, label];
+              }}
+            />
+
+            <Line
+              type="monotone"
+              dataKey={dataKey}
+              stroke={stroke}
+              strokeWidth={2.5}
+              dot={{ r: 4 }}
+              activeDot={{ r: 6 }}
+              isAnimationActive
+              animationDuration={250}
+            />
+          </LineChart>
         </ResponsiveContainer>
       </div>
+
+      <p className="iot-chart-hint">
+        {data.length > VISIBLE_POINTS ? "Kéo trái để xem thêm dữ liệu." : ""}
+      </p>
     </div>
   );
 }
@@ -377,14 +298,14 @@ export default function IotPage() {
                 title="TEMPERATURE LOG"
                 data={chartData}
                 dataKey="temp"
-                variant="line"
+                stroke="#f97316"
               />
 
               <SensorChart
                 title="HUMIDITY LOG"
                 data={chartData}
                 dataKey="humi"
-                variant="bar"
+                stroke="#3b82f6"
               />
             </div>
 
