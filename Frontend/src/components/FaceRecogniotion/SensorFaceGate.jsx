@@ -154,6 +154,8 @@ function captureDisplaySnapshot(video, faces) {
  * Frontend chỉ hiển thị bbox/banner; kết luận theo auth 13 (OK) / 14 (fail) từ IoT.
  */
 const SCAN_AUTH_VALUES = new Set([11, 12]);
+const VERIFY_BANNER = "Verifying face…";
+
 export default function SensorFaceGate() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -168,6 +170,8 @@ export default function SensorFaceGate() {
   const latestAuthRef = useRef(10);
   const prevAuthRef = useRef(10);
   const isScanningRef = useRef(false);
+  const verifyingBannerRef = useRef(false);
+  const lastDetectRef = useRef(null);
   const lastFrameUrlRef = useRef(null);
 
   const isCameraActive = useCallback(() => {
@@ -194,7 +198,7 @@ export default function SensorFaceGate() {
 
   const endScan = useCallback(async (facesForSnapshot) => {
     const video = videoRef.current;
-    const faces = facesForSnapshot ?? lastDetect?.faces;
+    const faces = facesForSnapshot ?? lastDetectRef.current?.faces;
 
     if (video?.videoWidth && faces?.length) {
       await setSnapshotFromVideo(video, faces);
@@ -215,10 +219,12 @@ export default function SensorFaceGate() {
       videoRef.current.srcObject = null;
     }
     isScanningRef.current = false;
+    verifyingBannerRef.current = false;
     noFaceStreakRef.current = 0;
     setLive(false);
     setLastDetect(null);
-  }, [lastDetect, setSnapshotFromVideo]);
+    lastDetectRef.current = null;
+  }, [setSnapshotFromVideo]);
 
   const drawOverlay = useCallback(() => {
     const video = videoRef.current;
@@ -262,43 +268,27 @@ export default function SensorFaceGate() {
 
   const processAfterDetect = useCallback(async (res) => {
     const count = Number(res?.count ?? 0);
+
+    /* Đặc tả + chat: 0 người → biến đếm backend không đổi, cam vẫn chụp. */
+    if (count === 0) return;
+
     if (count > 1) {
       setBanner("Verification failed: multiple people detected.");
-      cooldownUntilRef.current = Date.now() + 3000;
-      endScan(res?.faces);
-      window.setTimeout(() => setBanner(""), 5000);
+      /* Backend gửi auth=14 — chỉ tắt cam khi nhận auth (đủ 3 lần / fail qua MQTT). */
       return;
     }
-    if (count !== 1) return;
 
-    let cc = 0;
-    let person = null;
+    /* count === 1: đặc tả — gọi /api/face/status; đếm 3 lần do backend. */
+    if (!verifyingBannerRef.current) {
+      verifyingBannerRef.current = true;
+      setBanner(VERIFY_BANNER);
+    }
     try {
-      const st = await getFaceStatus();
-      cc = Number(st?.data?.current_count ?? 0);
-      person = st?.data?.current_person ?? null;
+      await getFaceStatus();
     } catch {
-      /* ignore */
+      /* backend offline — vẫn giữ cam, chờ auth 13/14 */
     }
-
-    const detectedName = res.faces?.[0]?.recognized_name;
-    const label =
-      person && person !== "unknown"
-        ? person
-        : detectedName && detectedName !== "unknown"
-        ? detectedName
-        : "face";
-
-    if (cc === 0) {
-      setBanner(
-        detectedName && detectedName !== "unknown"
-          ? `Detected ${detectedName}. Verifying…`
-          : "Starting face verification…"
-      );
-    } else {
-      setBanner(`Verifying ${label} (${cc}/3)…`);
-    }
-  }, [endScan]);
+  }, []);
 
   const tick = useCallback(async () => {
     const video = videoRef.current;
@@ -310,9 +300,9 @@ export default function SensorFaceGate() {
       if (!file) return;
 
       const res = await detectFaces(file);
+      lastDetectRef.current = res;
       setLastDetect(res);
       requestAnimationFrame(() => drawOverlay());
-      await setSnapshotFromVideo(video, res?.faces);
 
       const faceCount = Number(res?.count ?? 0);
       if (faceCount === 0) {
@@ -345,7 +335,7 @@ export default function SensorFaceGate() {
     } catch (e) {
       console.error("[SensorFaceGate] tick", e);
     }
-  }, [processAfterDetect, endScan, drawOverlay, setSnapshotFromVideo]);
+  }, [processAfterDetect, endScan, drawOverlay]);
 
   /** Lên lịch chụp + /detect đúng 0.5s giữa các lần bắt đầu (đặc tả). */
   const scheduleScanLoop = useCallback(() => {
@@ -391,9 +381,11 @@ export default function SensorFaceGate() {
     }
 
     isScanningRef.current = true;
+    verifyingBannerRef.current = false;
     noFaceStreakRef.current = 0;
     setBanner("");
     setLastDetect(null);
+    lastDetectRef.current = null;
     if (lastFrameUrlRef.current) {
       URL.revokeObjectURL(lastFrameUrlRef.current);
       lastFrameUrlRef.current = null;
@@ -422,14 +414,22 @@ export default function SensorFaceGate() {
   }, [scheduleScanLoop, isCameraActive]);
 
   useEffect(() => {
-    endScan();
     return () => {
+      if (scanTimerRef.current) {
+        clearTimeout(scanTimerRef.current);
+      }
+      if (iotTimerRef.current) {
+        clearInterval(iotTimerRef.current);
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+      }
       if (lastFrameUrlRef.current) {
         URL.revokeObjectURL(lastFrameUrlRef.current);
         lastFrameUrlRef.current = null;
       }
     };
-  }, [endScan]);
+  }, []);
 
   useEffect(() => {
     iotTimerRef.current = window.setInterval(async () => {
@@ -443,20 +443,24 @@ export default function SensorFaceGate() {
         prevAuthRef.current = auth;
         const now = Date.now();
 
-        /* auth 11/12: giữ cam; 13/14/10: dừng (face_service đã gửi auth qua MQTT). */
-        if (!SCAN_AUTH_VALUES.has(auth)) {
+        /* Chỉ tắt cam khi đủ 3 lần (auth 13/14). auth=10: tick xử lý 20 lần không mặt. */
+        if (auth === 13 || auth === 14) {
           if (isCameraActive()) {
             if (auth === 13) {
               setBanner("Authentication successful. Door unlocked.");
               cooldownUntilRef.current = Date.now() + 10000;
               window.setTimeout(() => setBanner(""), 10000);
-            } else if (auth === 14) {
+            } else {
               setBanner("Authentication failed.");
               cooldownUntilRef.current = Date.now() + 3000;
               window.setTimeout(() => setBanner(""), 3000);
             }
             endScan();
           }
+          return;
+        }
+
+        if (!SCAN_AUTH_VALUES.has(auth)) {
           return;
         }
 
@@ -477,7 +481,6 @@ export default function SensorFaceGate() {
         clearInterval(iotTimerRef.current);
         iotTimerRef.current = null;
       }
-      endScan();
     };
   }, [beginScan, endScan, isCameraActive]);
 
