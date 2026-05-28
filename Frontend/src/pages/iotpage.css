@@ -275,10 +275,8 @@
 }
 
 .iot-chart-card {
-  height: 252px;
-  padding: 10px 8px 6px;
-  display: flex;
-  flex-direction: column;
+  height: 270px;
+  padding: 24px;
   border-radius: 32px;
   background: rgba(255, 255, 255, 0.55);
   backdrop-filter: blur(16px) saturate(180%);
@@ -288,40 +286,24 @@
 }
 
 .iot-card-label {
-  margin: 0 0 2px;
+  margin: 0 0 8px;
   color: #64748b;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 1px;
+  font-weight: 900;
   text-transform: uppercase;
-  flex-shrink: 0;
 }
 
-.iot-chart-area {
-  flex: 1;
-  min-height: 0;
-  width: 100%;
+.iot-chart-drag-area {
+  height: 190px;
+  user-select: none;
 }
 
-.iot-chart-area .recharts-cartesian-axis-line {
-  stroke-width: 1.8px;
-}
-
-.iot-chart-area .recharts-cartesian-axis-line {
-  stroke: #0f172a !important;
-}
-
-.iot-chart-area .recharts-cartesian-axis-tick-line {
-  stroke: #0f172a !important;
-}
-
-.iot-chart-area .recharts-line-curve {
-  filter: none;
-  opacity: 1;
-}
-
-.iot-chart-area .recharts-bar-rectangle {
-  opacity: 1;
+.iot-chart-hint {
+  margin: -4px 0 0;
+  font-size: 15px;
+  color: #64748b;
+  text-align: center;
 }
 
 .iot-device-row {
