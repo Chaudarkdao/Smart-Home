@@ -7,6 +7,7 @@ from app.config import Config
 import os, json
 from datetime import datetime
 import aiohttp
+import asyncio 
 class FaceRecognitionService:
     def __init__(self):
         try:
@@ -203,6 +204,7 @@ class FaceRecognitionService:
                     print(f"✅ XÁC THỰC THÀNH CÔNG cho {name} sau 3 lần")
                     await self._send_auth_status(13)  # Gửi auth = 13 (Thành công)
                     await self.save_attendance(name)
+                    await asyncio.sleep(0.5)
                     # Reset sau khi điểm danh thành công
                     self.current_person = None
                     self.current_count = 0

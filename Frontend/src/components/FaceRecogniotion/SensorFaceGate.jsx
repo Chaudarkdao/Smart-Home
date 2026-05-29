@@ -3,7 +3,7 @@ import { getIotData } from "../../services/iotApi";
 import { detectFaces, getFaceStatus } from "../../services/faceApi";
 
 /** Đặc tả: auth=11 → cam chụp liên tục 0.5s/lần, mỗi lần gọi /api/face/detect */
-const CAPTURE_MS = 500;
+const CAPTURE_MS = 1000;
 const IOT_POLL_MS = 400;
 /** 10s ÷ 0.5s = 20 lần chụp liên tiếp không có mặt (đặc tả bổ sung). */
 const NO_FACE_STREAK_LIMIT = 20;
