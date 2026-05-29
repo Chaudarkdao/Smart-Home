@@ -19,7 +19,6 @@ export default function FaceRegisterPage() {
   const [registerName, setRegisterName] = useState("");
   const [registerFile, setRegisterFile] = useState(null);
   const [registerPreview, setRegisterPreview] = useState("");
-  const [registerResult, setRegisterResult] = useState(null);
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -85,7 +84,6 @@ export default function FaceRegisterPage() {
         revokePreview(registerPreview);
         setRegisterFile(file);
         setRegisterPreview(previewUrl);
-        setRegisterResult(null);
 
         closeCamera();
       },
@@ -157,7 +155,6 @@ export default function FaceRegisterPage() {
     revokePreview(registerPreview);
     setRegisterFile(file);
     setRegisterPreview(file ? URL.createObjectURL(file) : "");
-    setRegisterResult(null);
   };
 
   const handleRegister = async () => {
@@ -178,27 +175,17 @@ export default function FaceRegisterPage() {
 
       const res = await registerFace(name, registerFile);
 
-      setRegisterResult({
-        success: true,
-        name: res?.name || name,
-        message: res?.message || "Registered successfully",
-        ...res,
-      });
-
       await refreshMeta();
-      alert("Face registered successfully");
+      alert(res?.message || "Face registered successfully");
+      clearRegister();
     } catch (error) {
       console.error("Register face error:", error);
 
-      setRegisterResult({
-        success: false,
-        message:
-          error?.response?.data?.detail ||
+      alert(
+        error?.response?.data?.detail ||
           error?.response?.data?.message ||
-          "Registration failed",
-      });
-
-      alert("Registration failed");
+          "Registration failed"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -209,31 +196,6 @@ export default function FaceRegisterPage() {
     setRegisterName("");
     setRegisterFile(null);
     setRegisterPreview("");
-    setRegisterResult(null);
-  };
-
-  const renderRegisterResult = () => {
-    const ok = !!registerResult?.success;
-
-    return (
-      <div className="face-result-inner">
-        {ok ? (
-          <>
-            <div className="face-result-status">
-              <span className="face-badge success">Registered</span>
-            </div>
-            <div className="face-result-info">
-              <p className="face-result-label">Registered name</p>
-              <div className="face-highlight">{registerResult.name}</div>
-            </div>
-          </>
-        ) : (
-          <div className="face-error-msg">
-            {registerResult?.message || "Unable to register face."}
-          </div>
-        )}
-      </div>
-    );
   };
 
   return (
@@ -312,77 +274,62 @@ export default function FaceRegisterPage() {
             )}
           </section>
 
-          <aside className="face-result-aside face-glass-card">
-            <div className="face-result-header">
-              <p className="iot-card-label">RESULT</p>
-              <h2>Registration Result</h2>
-            </div>
-
-            <div className="face-result-body">
-              {!registerResult ? (
-                <div className="face-result-placeholder">No result yet.</div>
+          <div
+            className="face-meta-section face-meta-section--inline"
+            aria-label="Attendance history and registered faces"
+          >
+            <section className="face-glass-card">
+              <h3 className="face-meta-card-title">Entry History</h3>
+              {recentAttendance.length === 0 ? (
+                <div className="face-meta-empty premium-empty-state">
+                  <p className="premium-empty-title">No entries yet</p>
+                  <p className="premium-empty-hint">
+                    When someone is recognized at the door, their visit will show up here.
+                  </p>
+                </div>
               ) : (
-                renderRegisterResult()
-              )}
-            </div>
-          </aside>
-        </main>
-
-        <div
-          className="face-meta-section"
-          aria-label="Attendance history and registered faces"
-        >
-          <section className="face-glass-card">
-            <h3 className="face-meta-card-title">Entry History</h3>
-            {recentAttendance.length === 0 ? (
-              <div className="face-meta-empty premium-empty-state">
-                <p className="premium-empty-title">No entries yet</p>
-                <p className="premium-empty-hint">
-                  When someone is recognized at the door, their visit will show up here.
-                </p>
-              </div>
-            ) : (
-              <table className="face-attendance-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentAttendance.map((row, i) => (
-                    <tr key={`${row.time || ""}_${i}`}>
-                      <td>{row.name || "—"}</td>
-                      <td>{row.timestamp || row.time || "—"}</td>
+                <table className="face-attendance-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Time</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </section>
+                  </thead>
+                  <tbody>
+                    {recentAttendance.map((row, i) => (
+                      <tr key={`${row.time || ""}_${i}`}>
+                        <td>{row.name || "—"}</td>
+                        <td>{row.timestamp || row.time || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </section>
 
-          <section className="face-glass-card">
-            <h3 className="face-meta-card-title">Registered Faces</h3>
-            {knownNames.length === 0 ? (
-              <p className="face-meta-empty">No faces registered.</p>
-            ) : (
-              <div className="face-name-list">
-                {knownNames.map((n) => (
-                  <span key={n} className="face-name-chip">
-                    {n}
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteFace(n)}
-                      disabled={isLoading}
-                    >
-                      Delete
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
+            <section className="face-glass-card">
+              <h3 className="face-meta-card-title">Registered Faces</h3>
+              {knownNames.length === 0 ? (
+                <p className="face-meta-empty">No faces registered.</p>
+              ) : (
+                <div className="face-name-list">
+                  {knownNames.map((n) => (
+                    <span key={n} className="face-name-chip">
+                      {n}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteFace(n)}
+                        disabled={isLoading}
+                      >
+                        Delete
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+        </main>
       </div>
 
       {cameraOpen && (

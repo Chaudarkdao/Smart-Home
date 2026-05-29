@@ -8,6 +8,8 @@ const IOT_POLL_MS = 400;
 /** 10s ÷ 0.5s = 20 lần chụp liên tiếp không có mặt (đặc tả bổ sung). */
 const NO_FACE_STREAK_LIMIT = 20;
 const NO_FACE_WINDOW_MS = NO_FACE_STREAK_LIMIT * CAPTURE_MS;
+/** Giữ ảnh khung cuối sau khi tắt cam, rồi về nền đen. */
+const LAST_FRAME_DISPLAY_MS = 5000;
 
 /** Chuyển bbox (pixel gốc của frame) sang vùng hiển thị khi video dùng object-fit: cover. */
 function mapBboxToDisplay(bbox, videoW, videoH, displayW, displayH) {
@@ -173,6 +175,7 @@ export default function SensorFaceGate() {
   const verifyingBannerRef = useRef(false);
   const lastDetectRef = useRef(null);
   const lastFrameUrlRef = useRef(null);
+  const lastFrameTimerRef = useRef(null);
 
   const isCameraActive = useCallback(() => {
     if (isScanningRef.current) return true;
@@ -185,6 +188,22 @@ export default function SensorFaceGate() {
   const [lastFrameUrl, setLastFrameUrl] = useState(null);
   const [banner, setBanner] = useState("");
 
+  const clearLastFrameTimer = useCallback(() => {
+    if (lastFrameTimerRef.current) {
+      clearTimeout(lastFrameTimerRef.current);
+      lastFrameTimerRef.current = null;
+    }
+  }, []);
+
+  const clearLastFrame = useCallback(() => {
+    clearLastFrameTimer();
+    if (lastFrameUrlRef.current) {
+      URL.revokeObjectURL(lastFrameUrlRef.current);
+      lastFrameUrlRef.current = null;
+    }
+    setLastFrameUrl(null);
+  }, [clearLastFrameTimer]);
+
   const setSnapshotFromVideo = useCallback(async (video, faces) => {
     if (!video?.videoWidth) return;
     const url = await captureDisplaySnapshot(video, faces);
@@ -196,14 +215,28 @@ export default function SensorFaceGate() {
     setLastFrameUrl(url);
   }, []);
 
+  const scheduleLastFrameClear = useCallback(() => {
+    clearLastFrameTimer();
+    lastFrameTimerRef.current = window.setTimeout(() => {
+      if (lastFrameUrlRef.current) {
+        URL.revokeObjectURL(lastFrameUrlRef.current);
+        lastFrameUrlRef.current = null;
+      }
+      setLastFrameUrl(null);
+      lastFrameTimerRef.current = null;
+    }, LAST_FRAME_DISPLAY_MS);
+  }, [clearLastFrameTimer]);
+
   const endScan = useCallback(async (facesForSnapshot) => {
     const video = videoRef.current;
     const faces = facesForSnapshot ?? lastDetectRef.current?.faces;
 
     if (video?.videoWidth && faces?.length) {
       await setSnapshotFromVideo(video, faces);
+      scheduleLastFrameClear();
     } else if (video?.videoWidth) {
       await setSnapshotFromVideo(video, []);
+      scheduleLastFrameClear();
     }
 
     if (scanTimerRef.current) {
@@ -224,7 +257,7 @@ export default function SensorFaceGate() {
     setLive(false);
     setLastDetect(null);
     lastDetectRef.current = null;
-  }, [setSnapshotFromVideo]);
+  }, [setSnapshotFromVideo, scheduleLastFrameClear]);
 
   const drawOverlay = useCallback(() => {
     const video = videoRef.current;
@@ -386,11 +419,7 @@ export default function SensorFaceGate() {
     setBanner("");
     setLastDetect(null);
     lastDetectRef.current = null;
-    if (lastFrameUrlRef.current) {
-      URL.revokeObjectURL(lastFrameUrlRef.current);
-      lastFrameUrlRef.current = null;
-    }
-    setLastFrameUrl(null);
+    clearLastFrame();
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" },
@@ -411,7 +440,7 @@ export default function SensorFaceGate() {
       cooldownUntilRef.current = Date.now() + 5000;
       setBanner("Unable to open camera (permission or device).");
     }
-  }, [scheduleScanLoop, isCameraActive]);
+  }, [scheduleScanLoop, isCameraActive, clearLastFrame]);
 
   useEffect(() => {
     return () => {
@@ -424,12 +453,9 @@ export default function SensorFaceGate() {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((t) => t.stop());
       }
-      if (lastFrameUrlRef.current) {
-        URL.revokeObjectURL(lastFrameUrlRef.current);
-        lastFrameUrlRef.current = null;
-      }
+      clearLastFrame();
     };
-  }, []);
+  }, [clearLastFrame]);
 
   useEffect(() => {
     iotTimerRef.current = window.setInterval(async () => {

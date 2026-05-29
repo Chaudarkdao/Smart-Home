@@ -72,12 +72,19 @@
   height: auto;
 }
 
-/* Register page — form + kết quả */
+/* Register page — form + lịch sử */
 .face-register-main {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: var(--premium-gap, 20px);
-  align-items: stretch;
+}
+
+.face-register-page .face-tools-card {
+  max-width: 720px;
+}
+
+.face-meta-section--inline {
+  margin-top: 4px;
 }
 
 .iot-premium-page .face-tools-card {
@@ -385,16 +392,7 @@
   }
 
   .face-register-main {
-    grid-template-columns: 1fr;
-  }
-
-  .face-register-page .face-result-aside {
-    flex: none;
-    height: auto;
-  }
-
-  .face-register-page .face-result-body {
-    min-height: 200px;
+    gap: 16px;
   }
 
   .face-meta-section {
