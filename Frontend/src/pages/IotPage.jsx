@@ -341,9 +341,9 @@ export default function IotPage() {
 
                   <div className="mode-labels mode-labels-led">
   <span>Off</span>
+  <span>White</span>
   <span>Green</span>
   <span>Red</span>
-  <span>White</span>
 </div>
                 </div>
               </div>
